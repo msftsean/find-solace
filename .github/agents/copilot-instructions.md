@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-03-15
 
 ## Active Technologies
+- HTML5, CSS3, Vanilla JavaScript (ES2020+, no transpilation) + None (CDN-only: Rough Notation, Splitting.js, Google Fonts, Fontshare) (003-solace-agent)
+- `sessionStorage` (browser-side conversation state, visitor profile) (003-solace-agent)
 
 - HTML5, CSS3, ES6+ JavaScript (vanilla, no transpilation) + Rough Notation 0.5.1 (CDN), Splitting.js 1.0.6 (CDN), Google Fonts (Instrument Serif), Fontshare (Satoshi) (001-solace-baseline)
 
@@ -23,6 +25,7 @@ npm test; npm run lint
 HTML5, CSS3, ES6+ JavaScript (vanilla, no transpilation): Follow standard conventions
 
 ## Recent Changes
+- 003-solace-agent: Added HTML5, CSS3, Vanilla JavaScript (ES2020+, no transpilation) + None (CDN-only: Rough Notation, Splitting.js, Google Fonts, Fontshare)
 
 - 001-solace-baseline: Added HTML5, CSS3, ES6+ JavaScript (vanilla, no transpilation) + Rough Notation 0.5.1 (CDN), Splitting.js 1.0.6 (CDN), Google Fonts (Instrument Serif), Fontshare (Satoshi)
 
