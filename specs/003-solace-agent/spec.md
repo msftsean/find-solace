@@ -2,9 +2,19 @@
 
 **Feature Branch**: `003-solace-agent`  
 **Created**: 2026-03-15  
-**Status**: Draft  
+**Status**: Clarified  
 **Supersedes**: `002-ai-chat`  
 **Input**: User description: "Add the Solace Agent as an embedded AI guide across the Solace site, with page-aware Q&A, personalized DIY recommendations, prompt-building help, progressive skill building, Azure Foundry integration, and migration from GitHub Pages to Azure Static Web Apps at findsolace.io."
+
+## Clarifications
+
+### Session 2026-03-15
+
+- Q: Should the backend use Azure AI Foundry Agent Service for orchestration or direct Azure OpenAI calls behind APIM? → A: Direct Azure OpenAI behind APIM (simple proxy: browser → APIM → Azure OpenAI, system prompt + conversation history per request).
+- Q: Should the APIM subscription key be exposed to the browser, or hidden via a server-side proxy? → A: SWA managed API proxy — browser calls `/api/chat` on the same origin, SWA proxies to APIM with key injected server-side. Key never reaches the browser.
+- Q: Which APIM tier should Solace use? → A: Consumption tier (~$3.50/million calls). Pay-per-call, supports policies and Named Values, no monthly minimum.
+- Q: Has findsolace.io been purchased and is it under DNS control? → A: Yes, domain is owned and available for Azure Static Web Apps custom domain setup.
+- Q: What should the conversation history window size be for the chat widget? → A: Last 10 message pairs (20 messages total). Balances multi-turn context with token cost (~3,000 tokens of history).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -163,7 +173,7 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 **Conversation State & Personalization**
 - **FR-018**: The widget MUST persist conversation state in `sessionStorage` so the conversation survives page navigation within the same browser session.
 - **FR-019**: The stored conversation MUST include the ordered message history needed for multi-turn replies.
-- **FR-020**: The frontend MUST enforce a bounded conversation history window to control payload size and model cost while preserving recent context.
+- **FR-020**: The frontend MUST enforce a conversation history window of the last 10 message pairs (20 messages: 10 user + 10 assistant) to control payload size and model cost while preserving sufficient context for multi-turn flows.
 - **FR-021**: The widget MUST be able to capture lightweight visitor profile details shared during conversation, such as role, goals, confidence level, or interest areas, for use within the same session.
 - **FR-022**: The system MUST support personalized DIY exercise recommendations based on the visitor profile gathered during the conversation.
 - **FR-023**: The system MUST support prompt-building flows that replace DIY prompt placeholders through conversational follow-up questions.
@@ -177,28 +187,31 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 **Agent Behavior & Prompting**
 - **FR-029**: The system MUST define a Solace-specific system prompt that frames the assistant as a warm, encouraging, jargon-free learning companion.
-- **FR-030**: The system prompt MUST ground the assistant in the Solace site map, Home Life and Work Life guides, DIY exercises, and approved tool recommendations.
-- **FR-031**: The system prompt MUST explicitly prohibit recommending ChatGPT or other OpenAI consumer branding in visitor-facing guidance.
-- **FR-032**: The system prompt MUST instruct the agent to redirect politely when asked for off-topic help outside the Solace domain.
-- **FR-033**: The system prompt MUST instruct the agent to avoid inventing facts about AI tools or site content and to acknowledge uncertainty when needed.
-- **FR-034**: The assistant MUST explain technical terms immediately in plain language when such terms are necessary.
+- **FR-030**: The system prompt MUST ground the assistant in the Solace site map, Home Life and Work Life guides, DIY exercises, and approved tool recommendations (Claude, Perplexity, Microsoft Copilot, NotebookLM, ElevenLabs).
+- **FR-031**: The system prompt MUST prohibit recommending ChatGPT or other OpenAI consumer products as tools for users to sign up for or use directly. The exclusion applies to consumer product recommendations only — the agent runs on Azure AI infrastructure and may acknowledge this if asked directly.
+- **FR-031a**: If asked what technology powers it, the agent MAY say it is powered by Azure AI. It MUST NOT elaborate further on the underlying model architecture.
+- **FR-032**: The system prompt MUST instruct the agent to redirect politely when asked for off-topic help outside the Solace domain, including explicit out-of-scope categories: medical advice, legal advice, financial planning, and crisis intervention.
+- **FR-032a**: For messages indicating emotional distress, the agent MUST respond with a warm acknowledgment and direct the visitor to appropriate resources (e.g., crisis hotline numbers) rather than attempting to counsel.
+- **FR-033**: The system prompt MUST instruct the agent to avoid inventing facts about AI tools or site content and to acknowledge uncertainty when needed, including noting its training cutoff for fast-changing feature claims.
+- **FR-034**: The assistant MUST explain technical terms immediately in plain language when such terms are necessary, using a "simplest-level-first" approach before offering deeper detail.
+- **FR-034a**: The system prompt SHOULD include 1–2 few-shot example exchanges that model the Solace voice (warm, conversational, analogy-driven) to reduce variance in agent tone.
 
 **Azure API Management Proxy & Security**
-- **FR-035**: Browser requests for chat responses MUST be sent to an Azure API Management endpoint rather than directly to Azure OpenAI or Azure AI Foundry resources.
-- **FR-036**: APIM MUST store backend credentials in secure configuration such as Named Values and MUST NOT expose Azure OpenAI or agent-service secrets in frontend code.
+- **FR-035**: Browser requests for chat responses MUST be sent to the SWA managed API proxy (`/api/chat` on the same origin), which forwards to Azure API Management. The browser MUST NOT call APIM directly.
+- **FR-036**: The APIM subscription key MUST be stored in SWA application settings and injected server-side by the SWA API proxy. The key MUST NOT appear in frontend code, HTML, or browser network requests.
 - **FR-037**: APIM MUST restrict CORS to the approved production origin for Solace, `https://findsolace.io`, with any additional non-production origins explicitly controlled during development.
 - **FR-038**: APIM MUST enforce a rate limit of 20 requests per minute per client IP for the public chat endpoint.
 - **FR-039**: APIM MUST return visitor-safe error responses for common failure states such as upstream timeout, upstream quota exhaustion, or policy rejection.
-- **FR-040**: The public architecture MUST document whether an APIM subscription key is exposed to the browser and, if so, what compensating controls are required.
+- **FR-040**: *(Resolved — APIM subscription key is NOT exposed to the browser. SWA API proxy injects it server-side.)*
 
-**Azure AI Foundry & Model Routing**
-- **FR-041**: The backend architecture MUST support Azure AI Foundry Agent Service as the orchestration layer for the Solace Agent if that option is chosen during clarification.
+**Azure OpenAI Backend & Model Routing**
+- **FR-041**: The backend MUST use direct Azure OpenAI chat completions calls behind APIM (browser → APIM → Azure OpenAI). Azure AI Foundry Agent Service is not used in this release.
 - **FR-042**: The architecture MUST support a single frontend endpoint that can route requests without the browser selecting a model directly.
 - **FR-043**: GPT-4.1-mini MUST be the default conversational model path for ordinary Q&A, recommendations, and prompt-building flows.
 - **FR-044**: GPT-5-mini MUST be available as the higher-reasoning path for complex or multi-step questions.
 - **FR-045**: The solution MUST support Azure model routing in Cost mode so routine requests prefer the cheaper model unless complexity warrants escalation.
 - **FR-046**: The architecture MUST allow future enablement of GPT-4o multimodal capabilities without requiring a redesign of the widget shell.
-- **FR-047**: If Agent Service memory across sessions is enabled, that behavior MUST be explicitly documented with its privacy, retention, and consent approach during clarification.
+- **FR-047**: *(Removed — Agent Service memory not applicable for direct Azure OpenAI calls. Conversation state is browser-side only via sessionStorage.)*
 
 **Deployment, Hosting & Domain Migration**
 - **FR-048**: The production site MUST be hosted on Azure Static Web Apps rather than GitHub Pages.
@@ -258,8 +271,8 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 ## Open Questions
 
-- **OQ-001 — APIM tier**: Should Solace use APIM Consumption for minimal cost or Standard for stronger enterprise controls and potentially smoother support for multi-model routing? What concrete traffic or policy needs justify Standard's much higher monthly cost?
-- **OQ-002 — APIM subscription key exposure**: If the browser calls APIM directly, is origin-locked CORS plus rate limiting sufficient, or should Azure Static Web Apps proxy the request so the subscription key never appears client-side?
-- **OQ-003 — Agent orchestration path**: Should the implementation use Azure AI Foundry Agent Service for orchestration and optional memory, or direct Azure OpenAI calls behind APIM for lower complexity and cost?
-- **OQ-004 — Domain readiness**: Has `findsolace.io` already been purchased and placed under DNS control compatible with Azure Static Web Apps custom domain setup?
-- **OQ-005 — Streaming protocol**: Should the chat response stream use Server-Sent Events or chunked JSON, and which option best fits APIM policy support, browser simplicity, and inline-script maintainability?
+- **OQ-001 — APIM tier**: ✅ Resolved — Consumption tier. Pay-per-call pricing, supports required policies. Upgrade path available if traffic grows.
+- **OQ-002 — APIM subscription key exposure**: ✅ Resolved — SWA managed API proxy hides the key server-side. Browser calls `/api/chat` on same origin.
+- **OQ-003 — Agent orchestration path**: ✅ Resolved — Direct Azure OpenAI calls behind APIM. No Foundry Agent Service in this release.
+- **OQ-004 — Domain readiness**: ✅ Resolved — `findsolace.io` is owned and available for Azure Static Web Apps custom domain configuration.
+- **OQ-005 — Streaming protocol**: ✅ Resolved — Server-Sent Events (SSE) via Azure OpenAI's native streaming support. SSE is the standard for OpenAI chat completions and works through both SWA proxy and APIM without special configuration.
