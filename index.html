@@ -385,5 +385,375 @@
       }
     });
   </script>
+
+  <!-- Solace Agent Widget (T018-T026) -->
+  <script>
+    (function() {
+      'use strict';
+
+      // --- T025: Minimal markdown renderer ---
+      function renderMarkdown(md) {
+        if (!md) return '';
+        // Extract fenced code blocks before splitting on blank lines
+        var codeBlocks = [];
+        md = md.replace(/```[\s\S]*?```/g, function(match) {
+          codeBlocks.push(match);
+          return '\u0002CODE' + (codeBlocks.length - 1) + '\u0003';
+        });
+        var blocks = md.split(/\n{2,}/);
+        return blocks.map(function(block) {
+          block = block.trim();
+          if (!block) return '';
+          // Reinsert fenced code block
+          var codeMatch = block.match(/^\u0002CODE(\d+)\u0003$/);
+          if (codeMatch) {
+            var raw = codeBlocks[parseInt(codeMatch[1], 10)];
+            var lines = raw.split('\n');
+            lines.shift(); // remove opening ```
+            if (/^```/.test(lines[lines.length - 1])) lines.pop();
+            var pre = document.createElement('pre');
+            var code = document.createElement('code');
+            code.textContent = lines.join('\n');
+            pre.appendChild(code);
+            return pre.outerHTML;
+          }
+          // Unordered list
+          if (/^[-*]\s/.test(block)) {
+            var items = block.split(/\n/).filter(function(l) { return /^[-*]\s/.test(l); });
+            return '<ul>' + items.map(function(li) {
+              return '<li>' + inlineMarkdown(li.replace(/^[-*]\s+/, '')) + '</li>';
+            }).join('') + '</ul>';
+          }
+          // Ordered list
+          if (/^\d+\.\s/.test(block)) {
+            var items = block.split(/\n/).filter(function(l) { return /^\d+\.\s/.test(l); });
+            return '<ol>' + items.map(function(li) {
+              return '<li>' + inlineMarkdown(li.replace(/^\d+\.\s+/, '')) + '</li>';
+            }).join('') + '</ol>';
+          }
+          return '<p>' + inlineMarkdown(block.replace(/\n/g, ' ')) + '</p>';
+        }).join('');
+      }
+
+      function sanitizeUrl(url) {
+        var trimmed = url.replace(/^\s+|\s+$/g, '');
+        if (/^https?:\/\//i.test(trimmed) || /^mailto:/i.test(trimmed) || /^\/[^\/]/.test(trimmed)) {
+          return trimmed.replace(/"/g, '&quot;');
+        }
+        return null;
+      }
+
+      function inlineMarkdown(text) {
+        return text
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+          .replace(/`([^`]+)`/g, '<code>$1</code>')
+          .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.+?)\*/g, '<em>$1</em>')
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, function(m, label, url) {
+            var safe = sanitizeUrl(url);
+            if (safe) return '<a href="' + safe + '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+            return label;
+          });
+      }
+
+      // --- T022: State manager ---
+      var STORAGE_KEY = 'solace-chat';
+      var session = null;
+
+      function loadSession() {
+        try {
+          var raw = sessionStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            var parsed = JSON.parse(raw);
+            // Validate session shape
+            if (parsed && Array.isArray(parsed.messages) && typeof parsed.isOpen === 'boolean') {
+              return parsed;
+            }
+          }
+        } catch (e) { /* ignore corrupt data */ }
+        return null;
+      }
+
+      function saveSession() {
+        if (session) {
+          try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session)); }
+          catch (e) { /* storage full — degrade gracefully */ }
+        }
+      }
+
+      function ensureSession() {
+        if (!session) {
+          session = loadSession() || {
+            messages: [],
+            isOpen: false,
+            createdAt: new Date().toISOString()
+          };
+        }
+        return session;
+      }
+
+      // --- T024: Mock responses ---
+      var pageName = (function() {
+        var path = window.location.pathname;
+        if (path.indexOf('home') !== -1) return 'home';
+        if (path.indexOf('work') !== -1) return 'work';
+        if (path.indexOf('labs') !== -1) return 'labs';
+        return 'guide';
+      })();
+
+      var GREETINGS = {
+        guide: "Welcome! I'm your Solace guide. I can help you understand how **AI tools** work in everyday life.\n\nTry asking me something like:\n- *What can AI actually do for me?*\n- *Is it hard to learn?*\n- *What tools should I start with?*",
+        home: "Hi there! I'm here to help with **AI for home life** — budgeting, meal planning, vacation ideas, and more.\n\nAsk me anything about the topics on this page!",
+        work: "Hello! I can help you explore **AI for your work life** — emails, meetings, career growth, and productivity.\n\nWhat work challenge would you like to tackle?",
+        labs: "Welcome to the **DIY labs**! I can walk you through any of the hands-on exercises on this page.\n\nWhich lab are you interested in trying?"
+      };
+
+      var MOCK_REPLIES = [
+        "That's a great question! **AI is really just software** — like spell-check or auto-complete, but smarter. It looks at patterns in text to generate helpful responses.\n\nThink of it as a very knowledgeable assistant that's available 24/7.",
+        "Here's a practical tip:\n\n1. Start with a **simple task** you do often\n2. Try describing it to an AI tool like `Claude` or `Perplexity`\n3. See if the result saves you time\n\nMost people save *7+ hours per week* once they get comfortable.",
+        "Good question! Here are the tools I'd recommend for beginners:\n\n- **Perplexity** — Great for research and getting answers with sources\n- **Claude** — Excellent for writing, analysis, and conversation\n- **Microsoft Copilot** — Built into Word, Excel, and Outlook\n\nAll of them have free tiers, so you can try without any cost.",
+        "AI isn't magic — it has real limitations:\n\n- It can make mistakes (always verify important facts)\n- It doesn't *know* you unless you tell it context\n- It works best with **clear, specific instructions**\n\nBut for everyday tasks like drafting emails, organizing ideas, or researching topics, it's genuinely helpful."
+      ];
+      var mockIndex = 0;
+
+      function getMockReply() {
+        // Derive index from session history so it survives page reload
+        ensureSession();
+        var assistantCount = session.messages.filter(function(m) { return m.role === 'assistant'; }).length;
+        var idx = assistantCount % MOCK_REPLIES.length;
+        return MOCK_REPLIES[idx];
+      }
+
+      // --- T018: Widget DOM ---
+      var launcher, panel, transcript, composerInput, sendBtn;
+
+      function createWidget() {
+        // Launcher button with flame icon
+        launcher = document.createElement('button');
+        launcher.className = 'solace-launcher';
+        launcher.setAttribute('aria-label', 'Open Solace guide');
+        launcher.setAttribute('aria-expanded', 'false');
+        launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z"/><path d="M12 17a2 2 0 0 0 2-2c0-2-2-5-2-5s-2 3-2 5a2 2 0 0 0 2 2z" opacity="0.4"/></svg>';
+        document.body.appendChild(launcher);
+
+        // Panel
+        panel = document.createElement('div');
+        panel.className = 'solace-panel';
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'Solace Guide');
+        panel.setAttribute('aria-hidden', 'true');
+        panel.innerHTML =
+          '<div class="solace-panel-header">' +
+            '<h2 class="solace-panel-title">Solace Guide</h2>' +
+            '<button class="solace-panel-close" aria-label="Close chat">' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+            '</button>' +
+          '</div>' +
+          '<div class="solace-transcript" aria-live="polite" aria-relevant="additions"></div>' +
+          '<form class="solace-composer" autocomplete="off">' +
+            '<textarea class="solace-composer-input" placeholder="Ask me anything\u2026" rows="1" aria-label="Type your message"></textarea>' +
+            '<button type="submit" class="solace-composer-send" aria-label="Send message" disabled>' +
+              '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 2L11 13"/><path d="M22 2L15 22L11 13L2 9L22 2Z"/></svg>' +
+            '</button>' +
+          '</form>' +
+          '<div class="solace-attribution">Powered by Azure AI</div>';
+        document.body.appendChild(panel);
+
+        transcript = panel.querySelector('.solace-transcript');
+        composerInput = panel.querySelector('.solace-composer-input');
+        sendBtn = panel.querySelector('.solace-composer-send');
+        var closeBtn = panel.querySelector('.solace-panel-close');
+        var form = panel.querySelector('.solace-composer');
+
+        // --- T023: Event handlers ---
+        launcher.addEventListener('click', function() {
+          if (panel.getAttribute('aria-hidden') === 'true') {
+            openPanel();
+          } else {
+            closePanel();
+          }
+        });
+
+        closeBtn.addEventListener('click', closePanel);
+
+        // Escape key closes panel
+        panel.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            closePanel();
+          }
+        });
+
+        // Composer: Enter sends, Shift+Enter newlines
+        composerInput.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            submitMessage();
+          }
+        });
+
+        // Enable/disable send button
+        composerInput.addEventListener('input', function() {
+          sendBtn.disabled = !composerInput.value.trim();
+          autoResize(composerInput);
+        });
+
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          submitMessage();
+        });
+
+        // Focus trap: Tab cycles within panel
+        panel.addEventListener('keydown', function(e) {
+          if (e.key !== 'Tab') return;
+          var focusable = panel.querySelectorAll('button, textarea, [tabindex]:not([tabindex="-1"])');
+          if (!focusable.length) return;
+          var first = focusable[0];
+          var last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        });
+
+        // Restore session state
+        ensureSession();
+        if (session.messages.length) {
+          session.messages.forEach(function(msg) {
+            if (msg.role !== 'system') appendBubble(msg.role, msg.content);
+          });
+          scrollToBottom();
+        }
+        if (session.isOpen) openPanel();
+      }
+
+      function autoResize(el) {
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+      }
+
+      // --- T023: Open/close with focus management ---
+      function openPanel() {
+        panel.setAttribute('aria-hidden', 'false');
+        launcher.setAttribute('aria-expanded', 'true');
+        ensureSession();
+        session.isOpen = true;
+        saveSession();
+
+        // Show greeting if first open
+        if (!session.messages.length) {
+          var greeting = GREETINGS[pageName] || GREETINGS.guide;
+          addAssistantMessage(greeting);
+        }
+
+        setTimeout(function() { composerInput.focus(); }, 100);
+      }
+
+      function closePanel() {
+        panel.setAttribute('aria-hidden', 'true');
+        launcher.setAttribute('aria-expanded', 'false');
+        if (session) {
+          session.isOpen = false;
+          saveSession();
+        }
+        launcher.focus();
+      }
+
+      // --- T024: Message handling ---
+      function submitMessage() {
+        var text = composerInput.value.trim();
+        if (!text) return;
+
+        composerInput.value = '';
+        composerInput.style.height = 'auto';
+        sendBtn.disabled = true;
+
+        addUserMessage(text);
+        showTypingIndicator();
+
+        // Simulate API delay (mock mode)
+        setTimeout(function() {
+          removeTypingIndicator();
+          addAssistantMessage(getMockReply());
+        }, 800 + Math.random() * 1200);
+      }
+
+      function addUserMessage(content) {
+        ensureSession();
+        var msg = { role: 'user', content: content, timestamp: new Date().toISOString(), status: 'complete' };
+        session.messages.push(msg);
+        saveSession();
+        appendBubble('user', content);
+        scrollToBottom();
+      }
+
+      function addAssistantMessage(content) {
+        ensureSession();
+        var msg = { role: 'assistant', content: content, timestamp: new Date().toISOString(), status: 'complete' };
+        session.messages.push(msg);
+        saveSession();
+        appendBubble('assistant', content);
+        scrollToBottom();
+      }
+
+      function appendBubble(role, content) {
+        var div = document.createElement('div');
+        div.className = 'solace-msg solace-msg--' + role;
+        var inner = document.createElement('div');
+        inner.className = 'solace-msg-content';
+        if (role === 'assistant') {
+          inner.innerHTML = renderMarkdown(content);
+        } else {
+          inner.textContent = content;
+        }
+        div.appendChild(inner);
+        transcript.appendChild(div);
+      }
+
+      function showTypingIndicator() {
+        removeTypingIndicator(); // Enforce singleton
+        var el = document.createElement('div');
+        el.className = 'solace-typing';
+        el.id = 'solace-typing';
+        el.setAttribute('aria-label', 'Solace is thinking');
+        el.innerHTML = '<span class="solace-typing-dot"></span><span class="solace-typing-dot"></span><span class="solace-typing-dot"></span>';
+        transcript.appendChild(el);
+        transcript.setAttribute('aria-busy', 'true');
+        scrollToBottom();
+      }
+
+      function removeTypingIndicator() {
+        var el = document.getElementById('solace-typing');
+        if (el) el.remove();
+        transcript.setAttribute('aria-busy', 'false');
+      }
+
+      function scrollToBottom() {
+        if (transcript) transcript.scrollTop = transcript.scrollHeight;
+      }
+
+      // --- T026: Theme change listener ---
+      var themeObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.attributeName === 'data-theme') {
+            // Widget uses CSS custom properties, so theme changes apply automatically.
+            // This observer exists for any future JS-side theme reactions.
+          }
+        });
+      });
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+      // --- Init ---
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', createWidget);
+      } else {
+        createWidget();
+      }
+    })();
+  </script>
 </body>
 </html>
