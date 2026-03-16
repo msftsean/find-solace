@@ -1,18 +1,10 @@
 <svg viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <clipPath id="fc"><circle cx="22" cy="22" r="21"/></clipPath>
-    <linearGradient id="fs" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#6b1a1a"/><stop offset="30%" stop-color="#a02e1a"/><stop offset="55%" stop-color="#c95a20"/><stop offset="80%" stop-color="#d88030"/><stop offset="100%" stop-color="#e8a840"/></linearGradient>
-    <linearGradient id="fw" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d88030"/><stop offset="30%" stop-color="#c05828"/><stop offset="60%" stop-color="#8b3418"/><stop offset="100%" stop-color="#4a1a10"/></linearGradient>
+    <linearGradient id="fav-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#C87533"/>
+      <stop offset="100%" stop-color="#A05A28"/>
+    </linearGradient>
   </defs>
-  <g clip-path="url(#fc)">
-    <circle cx="22" cy="22" r="21" fill="url(#fs)"/>
-    <path d="M1 22 L6 12 L13 18 L14 22 L14 44 L1 44Z" fill="#2a1208" opacity="0.95"/>
-    <path d="M43 22 L38 12 L31 18 L30 22 L30 44 L43 44Z" fill="#2a1208" opacity="0.95"/>
-    <rect x="1" y="24" width="42" height="20" fill="url(#fw)"/>
-    <circle cx="22" cy="18" r="5" fill="#fff4d0" opacity="0.95"/>
-    <circle cx="22" cy="18" r="4" fill="#fffae8"/>
-    <line x1="22" y1="24" x2="22" y2="42" stroke="#ffe890" stroke-width="1.2" opacity="0.6"/>
-    <line x1="19" y1="27" x2="25" y2="27" stroke="#ffe080" stroke-width="0.6" opacity="0.5"/>
-    <line x1="18" y1="30" x2="26" y2="30" stroke="#e8a840" stroke-width="0.5" opacity="0.4"/>
-  </g>
+  <rect width="44" height="44" rx="10" fill="url(#fav-bg)"/>
+  <text x="22" y="33" text-anchor="middle" font-family="Georgia, serif" font-size="30" font-weight="700" fill="#FAF8F5" letter-spacing="-1">S</text>
 </svg>

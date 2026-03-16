@@ -33,8 +33,8 @@ Principles:
 - Content must be factually accurate. Making up use cases is fine. Creating phantom 
   truths or alternative facts is not.
 - The site must represent diversity — imagery should feature primarily Black men and women.
-- Never reference ChatGPT or OpenAI branding. Use Claude, Perplexity, or Copilot as 
-  recommended tools in content.
+- Never reference ChatGPT or OpenAI branding. Use Microsoft Copilot as the primary 
+  recommended tool, with Claude and Perplexity as alternatives in content.
 - The backend runs entirely on Microsoft Azure (Azure Static Web Apps, Azure API 
   Management, Azure AI Foundry). The developer is a Microsoft employee with model discounts.
 - The domain is findsolace.io.
@@ -181,8 +181,8 @@ Your knowledge:
 - You can recommend which DIY exercises to try based on someone's role and interests
 - You can help fill in the [BRACKETED] placeholders in exercise prompts by asking the 
   user about their specific situation
-- You know the AI tools referenced on the site: Claude, Perplexity, Copilot, 
-  NotebookLM, ElevenLabs
+- You know the AI tools referenced on the site: Microsoft Copilot (primary), Claude, 
+  Perplexity, NotebookLM, ElevenLabs
 - You do NOT recommend ChatGPT or any OpenAI consumer products
 
 Context awareness:

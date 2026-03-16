@@ -87,7 +87,7 @@
           <li><a href="./index.html" aria-current="page">Guide</a></li>
           <li><a href="./home.html">Home Life</a></li>
           <li><a href="./work.html">Work Life</a></li>
-          <li><a href="./labs.html">DIY</a></li>
+          <li><a href="./labs.html">Examples</a></li>
           <li>
             <button class="theme-toggle" aria-label="Toggle dark mode">
               <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -113,7 +113,7 @@
             <div style="display:flex; gap: var(--space-4); flex-wrap: wrap;">
               <a href="./home.html" class="btn">Explore Home Life</a>
               <a href="./work.html" class="btn btn--outline">Explore Work Life</a>
-              <a href="./labs.html" class="btn btn--outline">Try DIY</a>
+              <a href="./labs.html" class="btn btn--outline">Try Examples</a>
             </div>
           </div>
           <div class="hero-image">
@@ -191,7 +191,7 @@
           <a href="./work.html#career" class="card fade-in">
             <span class="card-icon" aria-hidden="true">🎯</span>
             <h3>Career Growth</h3>
-            <p>Polish your resume, prep for interviews, and build your professional network. Claude and LinkedIn's AI features are like having a career coach on call.</p>
+            <p>Polish your resume, prep for interviews, and build your professional network. Copilot and LinkedIn's AI features are like having a career coach on call.</p>
             <span class="card-link">Learn how <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
           </a>
           <a href="./work.html#inbox" class="card fade-in">
@@ -274,11 +274,8 @@
           <li><a href="./index.html">Guide</a></li>
           <li><a href="./home.html">Home Life</a></li>
           <li><a href="./work.html">Work Life</a></li>
-          <li><a href="./labs.html">DIY</a></li>
+          <li><a href="./labs.html">Examples</a></li>
         </ul>
-        <p class="footer-credit">
-          <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
-        </p>
       </div>
     </div>
   </footer>
@@ -403,14 +400,14 @@
         '- Focus on relief and ease, not anxiety about AI',
         '',
         'APPROVED TOOLS (recommend these):',
+        '- Microsoft Copilot — writing, analysis, research, and built into Word, Excel, Outlook, and Teams',
         '- Claude — writing, analysis, conversation',
         '- Perplexity — research with sources',
-        '- Microsoft Copilot — built into Word, Excel, Outlook, and Teams',
         '- NotebookLM — organizing and summarizing documents',
         '- ElevenLabs — text-to-speech and voice',
         '',
         'BOUNDARIES:',
-        '- Do NOT recommend ChatGPT or other OpenAI consumer products. If asked, say "We focus on Claude, Perplexity, and Microsoft Copilot which we\'ve found work great for everyday tasks."',
+        '- Do NOT recommend ChatGPT or other OpenAI consumer products. If asked, say "We recommend starting with Microsoft Copilot, but Claude and Perplexity are great options too."',
         '- Stay focused on practical AI usage for home and work life',
         '- If asked about politics, medical advice, legal advice, financial planning, or topics outside AI tools, say: "That\'s outside what I can help with. I\'m best at showing you how AI tools can make everyday tasks easier."',
         '- If someone expresses distress or crisis, say: "I\'m not the right resource for this. Please reach out to a trusted person or call 988 (Suicide & Crisis Lifeline)."',
@@ -428,7 +425,7 @@
         'You: "Think of AI as a really smart assistant... [concrete examples of saving time]"',
         '',
         'User: "Is ChatGPT good?"',
-        'You: "We focus on tools we\'ve tested thoroughly — **Claude** is great for writing and analysis, **Perplexity** gives you research with sources, and **Microsoft Copilot** works right inside the Office apps you already use."'
+        'You: "We recommend starting with **Microsoft Copilot** — it handles writing, research, and works right inside the Office apps you already use. **Claude** is great for analysis and conversation, and **Perplexity** gives you research with sources. All are worth trying."'
       ].join('\n');
 
       // --- T039: DIY exercise knowledge table ---
@@ -438,12 +435,12 @@
         'You have knowledge of all 6 hands-on exercises available on the DIY page (labs.html):',
         '',
         '| ID | Title | Tool | Duration | Category | Difficulty | Best For |',
-        '| trip-planner | Weekend Trip Planner | Perplexity | 15 min | Home Life | Beginner | Anyone planning travel |',
-        '| budget-checkin | Budget Check-In | Claude | 10 min | Home Life | Beginner | Personal finance |',
-        '| resume-refresh | Resume Refresh | Claude | 20 min | Work Life | Intermediate | Job seekers |',
-        '| meeting-prep | Meeting Prep Brief | Perplexity | 10 min | Work Life | Beginner | Professionals |',
-        '| email-drafting | Email Drafting Assistant | Claude | 5 min | Everyday | Beginner | Everyone (fastest win) |',
-        '| meal-planner | Weekly Meal Planner | Perplexity | 10 min | Home Life | Beginner | Meal prep, families |'
+        '| trip-planner | Weekend Trip Planner | Microsoft Copilot | 15 min | Home Life | Beginner | Anyone planning travel |',
+        '| budget-checkin | Budget Check-In | Microsoft Copilot | 10 min | Home Life | Beginner | Personal finance |',
+        '| resume-refresh | Resume Refresh | Microsoft Copilot | 20 min | Work Life | Intermediate | Job seekers |',
+        '| meeting-prep | Meeting Prep Brief | Microsoft Copilot | 10 min | Work Life | Beginner | Professionals |',
+        '| email-drafting | Email Drafting Assistant | Microsoft Copilot | 5 min | Everyday | Beginner | Everyone (fastest win) |',
+        '| meal-planner | Weekly Meal Planner | Microsoft Copilot | 10 min | Home Life | Beginner | Meal prep, families |'
       ].join('\n');
 
       // --- T040: Recommendation instructions ---
@@ -1085,8 +1082,8 @@
 
       var MOCK_REPLIES = [
         "That's a great question! **AI is really just software** — like spell-check or auto-complete, but smarter. It looks at patterns in text to generate helpful responses.\n\nThink of it as a very knowledgeable assistant that's available 24/7.",
-        "Here's a practical tip:\n\n1. Start with a **simple task** you do often\n2. Try describing it to an AI tool like `Claude` or `Perplexity`\n3. See if the result saves you time\n\nMost people save *7+ hours per week* once they get comfortable.",
-        "Good question! Here are the tools I'd recommend for beginners:\n\n- **Perplexity** — Great for research and getting answers with sources\n- **Claude** — Excellent for writing, analysis, and conversation\n- **Microsoft Copilot** — Built into Word, Excel, and Outlook\n\nAll of them have free tiers, so you can try without any cost.",
+        "Here's a practical tip:\n\n1. Start with a **simple task** you do often\n2. Try describing it to **Microsoft Copilot** at copilot.microsoft.com\n3. See if the result saves you time\n\nMost people save *7+ hours per week* once they get comfortable.",
+        "Good question! Here are the tools I'd recommend for beginners:\n\n- **Microsoft Copilot** — Great for writing, research, and built right into Word, Excel, and Outlook\n- **Claude** — Excellent for analysis and conversation\n- **Perplexity** — Research with sources you can verify\n\nAll of them have free tiers, so you can try without any cost.",
         "AI isn't magic — it has real limitations:\n\n- It can make mistakes (always verify important facts)\n- It doesn't *know* you unless you tell it context\n- It works best with **clear, specific instructions**\n\nBut for everyday tasks like drafting emails, organizing ideas, or researching topics, it's genuinely helpful."
       ];
 
@@ -1106,6 +1103,20 @@
         launcher.setAttribute('aria-expanded', 'false');
         launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z"/><path d="M12 17a2 2 0 0 0 2-2c0-2-2-5-2-5s-2 3-2 5a2 2 0 0 0 2 2z" opacity="0.4"/></svg>';
         document.body.appendChild(launcher);
+
+        // CTA label for first-time visitors
+        if (!sessionStorage.getItem('solace-cta-seen')) {
+          var ctaLabel = document.createElement('span');
+          ctaLabel.className = 'solace-cta-label';
+          ctaLabel.textContent = 'Ask me anything about AI';
+          document.body.appendChild(ctaLabel);
+          launcher.classList.add('cta-pulse');
+          setTimeout(function() {
+            ctaLabel.classList.add('cta-hidden');
+            launcher.classList.remove('cta-pulse');
+            sessionStorage.setItem('solace-cta-seen', '1');
+          }, 10000);
+        }
 
         panel = document.createElement('div');
         panel.className = 'solace-panel';
@@ -1202,6 +1213,10 @@
       function openPanel() {
         panel.setAttribute('aria-hidden', 'false');
         launcher.setAttribute('aria-expanded', 'true');
+        var ctaEl = document.querySelector('.solace-cta-label');
+        if (ctaEl) { ctaEl.classList.add('cta-hidden'); }
+        launcher.classList.remove('cta-pulse');
+        sessionStorage.setItem('solace-cta-seen', '1');
         launcher.setAttribute('aria-label', 'Close Solace guide');
         ensureSession();
         session.isOpen = true;
