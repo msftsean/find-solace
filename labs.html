@@ -654,6 +654,37 @@ Keep it under 150 words.</pre>
         'You: "We focus on tools we\'ve tested thoroughly — **Claude** is great for writing and analysis, **Perplexity** gives you research with sources, and **Microsoft Copilot** works right inside the Office apps you already use."'
       ].join('\n');
 
+      // --- T039: DIY exercise knowledge table ---
+      var EXERCISE_KNOWLEDGE = [
+        '',
+        'DIY EXERCISE CATALOG:',
+        'You have knowledge of all 6 hands-on exercises available on the DIY page (labs.html):',
+        '',
+        '| ID | Title | Tool | Duration | Category | Difficulty | Best For |',
+        '| trip-planner | Weekend Trip Planner | Perplexity | 15 min | Home Life | Beginner | Anyone planning travel |',
+        '| budget-checkin | Budget Check-In | Claude | 10 min | Home Life | Beginner | Personal finance |',
+        '| resume-refresh | Resume Refresh | Claude | 20 min | Work Life | Intermediate | Job seekers |',
+        '| meeting-prep | Meeting Prep Brief | Perplexity | 10 min | Work Life | Beginner | Professionals |',
+        '| email-drafting | Email Drafting Assistant | Claude | 5 min | Everyday | Beginner | Everyone (fastest win) |',
+        '| meal-planner | Weekly Meal Planner | Perplexity | 10 min | Home Life | Beginner | Meal prep, families |'
+      ].join('\n');
+
+      // --- T040: Recommendation instructions ---
+      var RECOMMENDATION_INSTRUCTIONS = [
+        '',
+        'PERSONALIZED RECOMMENDATIONS:',
+        '- When a visitor describes their role, goals, or interests, recommend one or more DIY exercises that match',
+        '- If you do not yet know their role, goals, or confidence level, ask a brief friendly question to learn more',
+        '- Match exercises by category (Home Life, Work Life, Everyday) and difficulty (Beginner, Intermediate)',
+        '- Explain why each exercise fits the visitor in plain language',
+        '- For overwhelmed or unsure visitors, always suggest the Email Drafting Assistant first — it is the fastest win (5 min, Beginner, works for everyone)',
+        '- If the first recommendation does not fit, offer alternatives based on time available, confidence level, or interest area',
+        '- After a visitor reports completing an exercise, suggest a non-duplicative next step that builds on the skill they just practiced',
+        '- Never repeat a recommendation the visitor has already declined or completed in this conversation'
+      ].join('\n');
+
+      BASE_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT + EXERCISE_KNOWLEDGE + RECOMMENDATION_INSTRUCTIONS;
+
       // --- T032: Page context ---
       var pageName = (function() {
         var path = window.location.pathname;
@@ -697,10 +728,25 @@ Keep it under 150 words.</pre>
         };
       }
 
+      // --- T041: Visitor profile context for system prompt ---
+      function buildProfileContext() {
+        ensureSession();
+        var p = session.visitorProfile;
+        if (!p) return '';
+        var parts = ['\n\nVisitor profile (gathered from conversation):'];
+        if (p.role) parts.push('- Role: ' + p.role);
+        if (p.goals && p.goals.length) parts.push('- Goals: ' + p.goals.join(', '));
+        if (p.confidenceLevel) parts.push('- Confidence level: ' + p.confidenceLevel);
+        if (p.completedExercises && p.completedExercises.length) parts.push('- Completed exercises: ' + p.completedExercises.join(', '));
+        if (p.interests && p.interests.length) parts.push('- Interests: ' + p.interests.join(', '));
+        // Only add if there's real data beyond the header
+        return parts.length > 1 ? parts.join('\n') : '';
+      }
+
       // --- T030: Chat request builder ---
       function buildChatRequest() {
         ensureSession();
-        var systemPrompt = BASE_SYSTEM_PROMPT + buildPageContext();
+        var systemPrompt = BASE_SYSTEM_PROMPT + buildPageContext() + buildProfileContext();
         var messages = [{ role: 'system', content: systemPrompt }];
 
         // History window: last 10 pairs (20 messages) per FR-020
@@ -891,10 +937,237 @@ Keep it under 150 words.</pre>
           session = loadSession() || {
             messages: [],
             isOpen: false,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            visitorProfile: null
           };
         }
+        // Backfill visitorProfile for sessions created before T041
+        if (!session.visitorProfile && session.visitorProfile !== null) {
+          session.visitorProfile = null;
+        }
         return session;
+      }
+
+      // --- T041: VisitorProfile capture ---
+      var PROFILE_PATTERNS = {
+        role: [
+          /\b(?:I(?:'m| am) (?:a |an ))(parent|manager|teacher|student|job seeker|freelancer|small[- ]business owner|developer|designer|writer|nurse|doctor|engineer|retiree|stay[- ]at[- ]home (?:mom|dad|parent)|executive|consultant|entrepreneur)/i,
+          /\bmy (?:role|job|title|position) is (?:a |an )?([\w\s-]+?)(?:\.|,|$)/i,
+          /\bI work (?:as|in) (?:a |an )?([\w\s-]+?)(?:\.|,|$)/i
+        ],
+        goals: [
+          /\bI (?:want|need|would like|am trying|hope) to ([\w\s,'-]+?)(?:\.|!|$)/i,
+          /\bhelp (?:me|us) (?:with )?([\w\s,'-]+?)(?:\.|!|$)/i,
+          /\bmy goal is to ([\w\s,'-]+?)(?:\.|!|$)/i
+        ],
+        confidence: [
+          /\b(?:I(?:'m| am) )?(?:a )?(beginner|new to (?:AI|this)|never used AI|just starting|not (?:very )?tech[- ]?savvy)/i,
+          /\b(?:I(?:'m| am) )?(?:somewhat |fairly )?(comfortable|familiar|intermediate|experienced) (?:with )?(?:AI|tech)/i,
+          /\b(?:I(?:'ve| have) )?(?:used|tried) (?:AI|ChatGPT|Claude|Copilot) (?:before|a (?:few|couple|lot))/i
+        ]
+      };
+
+      function parseConfidenceLevel(match) {
+        var text = match.toLowerCase();
+        if (text.indexOf('beginner') !== -1 || text.indexOf('new to') !== -1 || text.indexOf('never') !== -1 || text.indexOf('just starting') !== -1 || text.indexOf('not') !== -1) {
+          return 'beginner';
+        }
+        if (text.indexOf('comfortable') !== -1 || text.indexOf('experienced') !== -1) {
+          return 'comfortable';
+        }
+        return 'intermediate';
+      }
+
+      function extractProfileSignals(text) {
+        var signals = {};
+        var i, match;
+
+        for (i = 0; i < PROFILE_PATTERNS.role.length; i++) {
+          match = text.match(PROFILE_PATTERNS.role[i]);
+          if (match) { signals.role = match[1].trim(); break; }
+        }
+
+        for (i = 0; i < PROFILE_PATTERNS.goals.length; i++) {
+          match = text.match(PROFILE_PATTERNS.goals[i]);
+          if (match) {
+            if (!signals.goals) signals.goals = [];
+            signals.goals.push(match[1].trim());
+            break;
+          }
+        }
+
+        for (i = 0; i < PROFILE_PATTERNS.confidence.length; i++) {
+          match = text.match(PROFILE_PATTERNS.confidence[i]);
+          if (match) { signals.confidenceLevel = parseConfidenceLevel(match[0]); break; }
+        }
+
+        return signals;
+      }
+
+      function updateVisitorProfile(userText) {
+        ensureSession();
+        var signals = extractProfileSignals(userText);
+        if (!signals.role && !signals.goals && !signals.confidenceLevel) return;
+
+        if (!session.visitorProfile) {
+          session.visitorProfile = {
+            role: null,
+            goals: null,
+            confidenceLevel: null,
+            completedExercises: [],
+            interests: []
+          };
+        }
+
+        if (signals.role) session.visitorProfile.role = signals.role;
+        if (signals.goals) {
+          if (!session.visitorProfile.goals) session.visitorProfile.goals = [];
+          signals.goals.forEach(function(g) {
+            if (session.visitorProfile.goals.indexOf(g) === -1) {
+              session.visitorProfile.goals.push(g);
+            }
+          });
+        }
+        if (signals.confidenceLevel) session.visitorProfile.confidenceLevel = signals.confidenceLevel;
+
+        saveSession();
+      }
+
+      // --- T039-T040: Smart suggestion chips ---
+      var SUGGESTION_SETS = {
+        // Page-aware defaults (shown after greeting or when no topic is detected)
+        defaults: {
+          guide: [
+            'What can AI do for me?',
+            'Is it hard to learn?',
+            'What tools should I start with?',
+            'Show me a quick win'
+          ],
+          home: [
+            'Help me plan meals for the week',
+            'How can AI help with budgeting?',
+            'Plan a weekend trip',
+            'What exercise should I try first?'
+          ],
+          work: [
+            'Help me write a professional email',
+            'How can AI help in meetings?',
+            'I want to refresh my resume',
+            'What exercise should I try first?'
+          ],
+          labs: [
+            'Which exercise should I start with?',
+            'I\'m new to AI — what\'s easiest?',
+            'Tell me about the email drafting lab',
+            'What tool do I need?'
+          ]
+        },
+        // Context-aware: shown based on conversation topic
+        afterRecommendation: [
+          'Tell me more about that exercise',
+          'How long will it take?',
+          'What tool do I need?',
+          'Show me a different option'
+        ],
+        afterExerciseInfo: [
+          'Help me get started',
+          'What\'s the next step after this?',
+          'Is there something easier?',
+          'Can you help customize the prompt?'
+        ],
+        afterProfileGathering: [
+          'I\'m a complete beginner',
+          'I\'m somewhat comfortable with AI',
+          'I want to save time at work',
+          'I want help at home'
+        ],
+        afterCompletion: [
+          'What should I try next?',
+          'Something more challenging',
+          'Something in a different area',
+          'I want to learn more about this topic'
+        ]
+      };
+
+      // Exercise IDs used for topic detection
+      var EXERCISE_IDS = ['trip-planner', 'budget-checkin', 'resume-refresh', 'meeting-prep', 'email-drafting', 'meal-planner'];
+
+      function detectSuggestionContext(assistantText) {
+        var lower = assistantText.toLowerCase();
+
+        // Check if assistant mentioned completing / already done
+        if (lower.indexOf('completed') !== -1 || lower.indexOf('great job') !== -1 || lower.indexOf('well done') !== -1 || lower.indexOf('finished') !== -1) {
+          return 'afterCompletion';
+        }
+
+        // Check if assistant recommended an exercise
+        var mentionsExercise = false;
+        for (var i = 0; i < EXERCISE_IDS.length; i++) {
+          if (lower.indexOf(EXERCISE_IDS[i].replace('-', ' ')) !== -1 || lower.indexOf(EXERCISE_IDS[i]) !== -1) {
+            mentionsExercise = true;
+            break;
+          }
+        }
+
+        // Check if asking for profile info
+        if (lower.indexOf('what do you do') !== -1 || lower.indexOf('tell me about your') !== -1 || lower.indexOf('what role') !== -1 || lower.indexOf('what are you looking') !== -1 || lower.indexOf('what brings you') !== -1) {
+          return 'afterProfileGathering';
+        }
+
+        if (mentionsExercise) {
+          // Distinguish recommendation from info
+          if (lower.indexOf('recommend') !== -1 || lower.indexOf('suggest') !== -1 || lower.indexOf('try') !== -1 || lower.indexOf('start with') !== -1 || lower.indexOf('good fit') !== -1) {
+            return 'afterRecommendation';
+          }
+          return 'afterExerciseInfo';
+        }
+
+        return null;
+      }
+
+      function getSuggestionsForContext(assistantText) {
+        var context = detectSuggestionContext(assistantText);
+        if (context) return SUGGESTION_SETS[context];
+        return SUGGESTION_SETS.defaults[pageName] || SUGGESTION_SETS.defaults.guide;
+      }
+
+      function createSuggestionChips(assistantText, parentEl) {
+        var suggestions = getSuggestionsForContext(assistantText);
+        if (!suggestions || suggestions.length === 0) return;
+
+        var container = document.createElement('div');
+        container.className = 'solace-suggestions';
+        container.setAttribute('role', 'group');
+        container.setAttribute('aria-label', 'Suggested follow-up questions');
+
+        suggestions.forEach(function(text) {
+          var chip = document.createElement('button');
+          chip.className = 'solace-suggestion-chip';
+          chip.type = 'button';
+          chip.textContent = text;
+          chip.addEventListener('click', function() {
+            // Remove this suggestion row
+            if (container.parentNode) container.parentNode.removeChild(container);
+            // Auto-fill the composer and submit
+            if (composerInput) {
+              composerInput.value = text;
+              composerInput.focus();
+              submitMessage();
+            }
+          });
+          container.appendChild(chip);
+        });
+
+        parentEl.appendChild(container);
+        scrollToBottom();
+      }
+
+      function removeAllSuggestionChips() {
+        if (!transcript) return;
+        var chips = transcript.querySelectorAll('.solace-suggestions');
+        for (var i = 0; i < chips.length; i++) {
+          chips[i].parentNode.removeChild(chips[i]);
+        }
       }
 
       // --- Mock responses (fallback when API unavailable) ---
@@ -1031,6 +1304,7 @@ Keep it under 150 words.</pre>
         if (!session.messages.length) {
           var greeting = GREETINGS[pageName] || GREETINGS.guide;
           addAssistantMessage(greeting);
+          createSuggestionChips(greeting, transcript);
         }
 
         setTimeout(function() { composerInput.focus(); }, 100);
@@ -1057,6 +1331,10 @@ Keep it under 150 words.</pre>
         composerInput.value = '';
         composerInput.style.height = 'auto';
         sendBtn.disabled = true;
+
+        // Remove previous suggestion chips and capture profile
+        removeAllSuggestionChips();
+        updateVisitorProfile(text);
 
         addUserMessage(text);
 
@@ -1107,6 +1385,7 @@ Keep it under 150 words.</pre>
                 status: 'complete'
               });
               saveSession();
+              createSuggestionChips(streamContent, transcript);
             }
           },
           // onError
@@ -1146,7 +1425,9 @@ Keep it under 150 words.</pre>
         showTypingIndicator();
         setTimeout(function() {
           removeTypingIndicator();
-          addAssistantMessage(getMockReply());
+          var reply = getMockReply();
+          addAssistantMessage(reply);
+          createSuggestionChips(reply, transcript);
         }, 800 + Math.random() * 1200);
       }
 

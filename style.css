@@ -1664,12 +1664,73 @@ a.card:hover .card-link svg {
   margin-bottom: 0;
 }
 
+/* --- T039-T041: Smart Suggestion Chips --- */
+.solace-suggestions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: wrap;
+}
+
+.solace-suggestions::-webkit-scrollbar {
+  display: none;
+}
+
+.solace-suggestion-chip {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background var(--transition-interactive),
+              border-color var(--transition-interactive),
+              color var(--transition-interactive);
+  white-space: nowrap;
+}
+
+.solace-suggestion-chip:hover {
+  background: var(--color-surface-offset);
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.solace-suggestion-chip:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.solace-suggestion-chip:active {
+  transform: scale(0.97);
+}
+
+[data-theme="dark"] .solace-suggestion-chip {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .solace-suggestion-chip:hover {
+  background: var(--color-surface-offset);
+  border-color: var(--color-primary);
+}
+
 /* --- Reduced Motion: Widget --- */
 @media (prefers-reduced-motion: reduce) {
   .solace-launcher,
   .solace-panel,
   .solace-msg,
-  .solace-launcher::after {
+  .solace-launcher::after,
+  .solace-suggestion-chip {
     transition-duration: 0s;
     animation-duration: 0s;
   }
