@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-solace-agent`  
 **Created**: 2026-03-15  
-**Status**: Implemented  
+**Status**: Clarified  
 **Supersedes**: `002-ai-chat`  
 **Input**: User description: "Add the Solace Agent as an embedded AI guide across the Solace site, with page-aware Q&A, personalized DIY recommendations, prompt-building help, progressive skill building, Azure Foundry integration, and migration from GitHub Pages to Azure Static Web Apps at findsolace.io."
 
@@ -136,8 +136,8 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 - What happens when JavaScript is disabled? The widget does not render, no broken controls are shown, and the rest of the static site remains fully usable.
 - What happens when the visitor submits an empty or whitespace-only message? The send control remains disabled and no request is sent.
-- What happens when APIM, the model, or the upstream service is unavailable? The widget shows a friendly recovery message and preserves the draft input or conversation already stored in session state.
-- What happens when the upstream service returns HTTP 429 due to quota or throttling? The widget explains the temporary limit in plain language and invites the visitor to retry shortly. *(Note: Per-IP rate limiting via APIM policy is deferred — see FR-038 and AD-002. This edge case covers upstream Azure OpenAI throttling.)*
+- What happens when APIM, the model router, or the agent service is unavailable? The widget shows a friendly recovery message and preserves the draft input or conversation already stored in session state.
+- What happens when APIM returns HTTP 429 because the visitor exceeded 20 requests per minute? The widget explains the temporary limit in plain language and invites the visitor to retry shortly.
 - What happens when the response stream is interrupted mid-reply? The widget stops the loading state, preserves any partial response already rendered, and offers a retry path.
 - What happens when page context cannot be detected cleanly, such as a missing section anchor or an unexpected title? The request still sends page URL and title if available, falls back to a generic Solace page context, and the agent avoids pretending to know a specific exercise.
 - What happens when a response includes markdown features not supported by the renderer? Unsupported formatting degrades to safe readable text rather than raw HTML injection or broken layout.
@@ -200,17 +200,17 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 - **FR-035**: Browser requests for chat responses MUST be sent to the SWA managed API proxy (`/api/chat` on the same origin), which forwards to Azure API Management. The browser MUST NOT call APIM directly.
 - **FR-036**: The APIM subscription key MUST be stored in SWA application settings and injected server-side by the SWA API proxy. The key MUST NOT appear in frontend code, HTML, or browser network requests.
 - **FR-037**: APIM MUST restrict CORS to the approved production origin for Solace, `https://findsolace.io`, with any additional non-production origins explicitly controlled during development.
-- **FR-038**: *(Deferred — APIM Consumption SKU does not support `rate-limit` or `rate-limit-by-key` policies. Rate limiting requires Developer tier or higher. Mitigated by CORS lockdown and APIM subscription key secrecy. See AD-002.)*
+- **FR-038**: APIM MUST enforce a rate limit of 20 requests per minute per client IP for the public chat endpoint.
 - **FR-039**: APIM MUST return visitor-safe error responses for common failure states such as upstream timeout, upstream quota exhaustion, or policy rejection.
 - **FR-040**: *(Resolved — APIM subscription key is NOT exposed to the browser. SWA API proxy injects it server-side.)*
 
 **Azure OpenAI Backend & Model Routing**
 - **FR-041**: The backend MUST use direct Azure OpenAI chat completions calls behind APIM (browser → APIM → Azure OpenAI). Azure AI Foundry Agent Service is not used in this release.
-- **FR-042**: The architecture MUST support a single frontend endpoint that can route requests without the browser selecting a model directly. *(Satisfied — browser calls `/api/chat`; model selection is server-side.)*
+- **FR-042**: The architecture MUST support a single frontend endpoint that can route requests without the browser selecting a model directly.
 - **FR-043**: GPT-4.1-mini MUST be the default conversational model path for ordinary Q&A, recommendations, and prompt-building flows.
-- **FR-044**: *(Deferred — GPT-5-mini not deployed in this release. Single-model architecture uses GPT-4.1-mini only. Can be added behind the existing APIM endpoint without frontend changes.)*
-- **FR-045**: *(Deferred — Model routing not deployed in this release. Current architecture uses GPT-4.1-mini directly. Azure model routing can be added at the APIM layer without frontend changes.)*
-- **FR-046**: The architecture MUST allow future enablement of GPT-4o multimodal capabilities without requiring a redesign of the widget shell. *(Satisfied — widget shell is model-agnostic.)*
+- **FR-044**: GPT-5-mini MUST be available as the higher-reasoning path for complex or multi-step questions.
+- **FR-045**: The solution MUST support Azure model routing in Cost mode so routine requests prefer the cheaper model unless complexity warrants escalation.
+- **FR-046**: The architecture MUST allow future enablement of GPT-4o multimodal capabilities without requiring a redesign of the widget shell.
 - **FR-047**: *(Removed — Agent Service memory not applicable for direct Azure OpenAI calls. Conversation state is browser-side only via sessionStorage.)*
 
 **Deployment, Hosting & Domain Migration**
@@ -252,7 +252,7 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 - **SC-005**: In prompt-builder tests, visitors can complete a ready-to-paste customized prompt with no unresolved required placeholders in at least 90% of sampled exercise flows.
 - **SC-006**: After a visitor reports completing an exercise, the agent returns a non-duplicative next-step recommendation in at least 90% of progression test cases.
 - **SC-007**: The widget remains visually consistent with Solace light and dark themes and passes keyboard and screen-reader acceptance testing on all four pages.
-- **SC-008**: *(Deferred — Rate limiting not enforceable on APIM Consumption SKU. See FR-038 and AD-002.)*
+- **SC-008**: Public chat traffic exceeding 20 requests per minute per IP is blocked by APIM with a friendly visitor-facing error state instead of raw backend output.
 - **SC-009**: Production CORS policy allows requests from `https://findsolace.io` and rejects disallowed origins in deployment validation.
 - **SC-010**: No backend secret, Azure OpenAI key, or Foundry credential appears in shipped HTML, inline JavaScript, or CSS.
 - **SC-011**: A push to the main branch triggers GitHub Actions deployment to Azure Static Web Apps without requiring a manual build step.
@@ -271,52 +271,8 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 ## Open Questions
 
-- **OQ-001 — APIM tier**: ✅ Resolved — Consumption tier. Pay-per-call pricing, supports CORS and Named Values policies. Note: rate-limit policies require Developer tier or higher (see AD-002). Upgrade path available if traffic grows.
+- **OQ-001 — APIM tier**: ✅ Resolved — Consumption tier. Pay-per-call pricing, supports required policies. Upgrade path available if traffic grows.
 - **OQ-002 — APIM subscription key exposure**: ✅ Resolved — SWA managed API proxy hides the key server-side. Browser calls `/api/chat` on same origin.
 - **OQ-003 — Agent orchestration path**: ✅ Resolved — Direct Azure OpenAI calls behind APIM. No Foundry Agent Service in this release.
 - **OQ-004 — Domain readiness**: ✅ Resolved — `findsolace.io` is owned and available for Azure Static Web Apps custom domain configuration.
 - **OQ-005 — Streaming protocol**: ✅ Resolved — Server-Sent Events (SSE) via Azure OpenAI's native streaming support. SSE is the standard for OpenAI chat completions and works through both SWA proxy and APIM without special configuration.
-
-## Architecture Decisions
-
-Decisions made during implementation that deviated from or refined the original specification.
-
-### AD-001 — Managed Functions over linked backend
-
-**Decision**: Use SWA's built-in managed Azure Functions (`api/` folder) instead of a linked backend or external Function App.
-
-**Reason**: Azure Static Web Apps Free SKU does not support linked backends. Managed Functions are the only server-side option at this tier. The `api/chat/index.js` Function acts as a thin proxy: it receives the chat request from the browser, attaches the APIM subscription key from environment variables, forwards to APIM, and streams the response back.
-
-**Trade-off**: Managed Functions use the v3 runtime model which buffers SSE responses before forwarding to the client. This means the browser receives the full response in one chunk rather than token-by-token streaming. Acceptable for initial launch; true streaming would require upgrading to Standard SKU with a linked backend.
-
-### AD-002 — APIM Consumption SKU limitations
-
-**Decision**: Deploy APIM on the Consumption SKU (~$3.50/million calls).
-
-**Reason**: Lowest-cost option that supports policies, Named Values, and CORS configuration. Suitable for a low-traffic site.
-
-**Trade-off**: Consumption SKU does not support built-in rate-limiting policies (`rate-limit` and `rate-limit-by-key` require Developer tier or higher). The spec called for 20 req/min/IP rate limiting (FR-038), which is not enforceable at this tier. Mitigation: CORS lockdown to the production origin and APIM subscription key secrecy provide the primary abuse prevention. Rate limiting can be added by upgrading to Developer tier or higher if traffic warrants it.
-
-### AD-003 — Client-side system prompt
-
-**Decision**: The system prompt is assembled in the browser and sent with each chat request.
-
-**Reason**: With no server-side orchestration layer (no Agent Service, no backend logic beyond a proxy), the system prompt must originate from the client. The managed Function is a transparent proxy — it does not modify the request payload.
-
-**Trade-off**: The system prompt is inspectable via browser DevTools. This is a known limitation. The prompt contains only behavioral instructions and site knowledge — no secrets, API keys, or sensitive data. A determined user could modify the prompt to change agent behavior for their own session, but this poses no security risk.
-
-### AD-004 — Widget JS duplicated across 4 HTML files
-
-**Decision**: The agent widget's inline `<script>` block is copied identically into `index.html`, `home.html`, `work.html`, and `labs.html`.
-
-**Reason**: Project development rules mandate inline scripts with no external `.js` files (FR-009, FR-010). There is no build step or templating system that could inject a shared script. The four files must be kept in sync manually.
-
-**Trade-off**: Any widget bug fix or feature change must be applied to all 4 files. Risk of drift if an update misses one file. Mitigation: Copilot sessions should always update all 4 HTML files together, and code review should verify consistency.
-
-### AD-005 — SWA v3 Functions response buffering
-
-**Decision**: Accept SWA v3's response buffering behavior rather than upgrading SKU or adding infrastructure.
-
-**Reason**: SWA v3 managed Functions do not support true streaming passthrough. The Function returns `text/event-stream` content type and writes SSE chunks, but the SWA infrastructure buffers the full response before delivering it to the client. The client-side SSE parser still processes the response correctly — it just arrives in one batch rather than incrementally.
-
-**Trade-off**: Users see the full response appear at once after a delay, rather than watching it stream token by token. For the typical response length (1–3 paragraphs), the perceived delay is acceptable. True streaming would require Standard SKU with a linked Azure Functions backend or an alternative hosting approach.
