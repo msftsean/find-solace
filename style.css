@@ -1181,3 +1181,505 @@ a.card:hover .card-link svg {
     right: var(--space-2);
   }
 }
+
+/* ============================================
+   SOLACE AGENT — Chat Widget
+   T012-T017: Launcher, Panel, Messages,
+   Mobile, Dark Mode, Markdown
+   ============================================ */
+
+/* --- T012: Launcher Button --- */
+.solace-launcher {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition:
+    transform var(--transition-interactive),
+    box-shadow var(--transition-interactive),
+    background-color var(--transition-interactive);
+}
+
+.solace-launcher:hover {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-lg);
+  background: var(--color-primary-hover);
+}
+
+.solace-launcher:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.solace-launcher:active {
+  transform: scale(0.96);
+}
+
+.solace-launcher[aria-expanded="true"] {
+  transform: rotate(90deg) scale(0.9);
+}
+
+.solace-launcher svg {
+  width: 28px;
+  height: 28px;
+  fill: currentColor;
+  pointer-events: none;
+}
+
+/* Warm flame icon glow */
+.solace-launcher::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.75 0.12 55 / 0.25), transparent 70%);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity var(--transition-interactive);
+}
+
+.solace-launcher:hover::after {
+  opacity: 1;
+}
+
+/* --- T013: Chat Panel Shell --- */
+.solace-panel {
+  position: fixed;
+  bottom: calc(var(--space-8) + 56px + var(--space-4));
+  right: var(--space-8);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  width: min(400px, calc(100vw - var(--space-8) * 2));
+  max-height: min(600px, calc(100vh - 160px));
+  background: oklch(from var(--color-surface-2) l c h / 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  pointer-events: none;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+.solace-panel[aria-hidden="false"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+/* --- T014: Panel Header --- */
+.solace-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.solace-panel-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  margin: 0;
+  line-height: 1.15;
+}
+
+.solace-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-interactive), background var(--transition-interactive);
+}
+
+.solace-panel-close:hover {
+  color: var(--color-text);
+  background: var(--color-surface-offset);
+}
+
+.solace-panel-close:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.solace-panel-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* --- T014: Transcript Area --- */
+.solace-transcript {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-6);
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+.solace-transcript::-webkit-scrollbar {
+  width: 6px;
+}
+
+.solace-transcript::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.solace-transcript::-webkit-scrollbar-thumb {
+  background: var(--color-text-faint);
+  border-radius: 3px;
+}
+
+/* --- T014: Message Bubbles --- */
+.solace-msg {
+  max-width: 88%;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  animation: solace-msg-in 200ms var(--ease-out) both;
+}
+
+@keyframes solace-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.solace-msg--user {
+  margin-left: auto;
+  background: var(--color-primary);
+  color: #fff;
+  border-bottom-right-radius: var(--radius-sm);
+}
+
+.solace-msg--assistant {
+  margin-right: auto;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+/* --- T016: Loading / Error / Streaming States --- */
+.solace-msg--loading .solace-msg-content::after {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  margin-left: 2px;
+  background: var(--color-primary);
+  border-radius: 1px;
+  animation: solace-cursor-blink 800ms steps(2) infinite;
+  vertical-align: text-bottom;
+}
+
+@keyframes solace-cursor-blink {
+  50% { opacity: 0; }
+}
+
+.solace-msg--error {
+  background: oklch(0.55 0.12 25 / 0.1);
+  border: 1px solid oklch(0.55 0.12 25 / 0.25);
+  color: var(--color-text);
+}
+
+.solace-msg--error::before {
+  content: '⚠ ';
+}
+
+/* Typing indicator (three dots) */
+.solace-typing {
+  display: flex;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-sm);
+  width: fit-content;
+}
+
+.solace-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: solace-typing-bounce 1.2s ease-in-out infinite;
+}
+
+.solace-typing-dot:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.solace-typing-dot:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes solace-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+/* --- T014: Composer --- */
+.solace-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-divider);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.solace-composer-input {
+  flex: 1;
+  min-height: 40px;
+  max-height: 120px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Satoshi', BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+}
+
+.solace-composer-input::placeholder {
+  color: var(--color-text-faint);
+}
+
+.solace-composer-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px oklch(from var(--color-primary) l c h / 0.15);
+}
+
+.solace-composer-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background var(--transition-interactive),
+    transform var(--transition-interactive);
+}
+
+.solace-composer-send:hover {
+  background: var(--color-primary-hover);
+}
+
+.solace-composer-send:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.solace-composer-send:active {
+  transform: scale(0.93);
+}
+
+.solace-composer-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.solace-composer-send svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* --- T014: Attribution Footer --- */
+.solace-attribution {
+  padding: var(--space-2) var(--space-4);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  border-top: 1px solid var(--color-divider);
+  flex-shrink: 0;
+}
+
+/* --- T015: Mobile Responsive --- */
+@media (max-width: 767px) {
+  .solace-launcher {
+    bottom: var(--space-4);
+    right: var(--space-4);
+    width: 52px;
+    height: 52px;
+  }
+
+  .solace-panel {
+    inset: auto 0 0 0;
+    right: 0;
+    width: 100%;
+    max-height: 85vh;
+    max-height: 85dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    transform: translateY(100%);
+  }
+
+  .solace-panel[aria-hidden="false"] {
+    transform: translateY(0);
+  }
+
+  .solace-composer {
+    padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 768px) {
+  .solace-panel {
+    bottom: calc(var(--space-8) + 56px + var(--space-4));
+    right: var(--space-8);
+  }
+}
+
+/* --- T016: Dark Mode Widget Overrides --- */
+[data-theme="dark"] .solace-panel {
+  background: oklch(from var(--color-surface-2) l c h / 0.92);
+}
+
+[data-theme="dark"] .solace-msg--user {
+  background: var(--color-primary);
+  color: #1A1714;
+}
+
+[data-theme="dark"] .solace-msg--error {
+  background: oklch(0.35 0.1 25 / 0.25);
+  border-color: oklch(0.5 0.12 25 / 0.3);
+}
+
+[data-theme="dark"] .solace-composer-input:focus {
+  box-shadow: 0 0 0 3px oklch(from var(--color-primary) l c h / 0.2);
+}
+
+/* --- T016: Focus-Visible for All Widget Interactive Elements --- */
+.solace-panel :focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- T017: Markdown Rendering in Assistant Messages --- */
+.solace-msg--assistant p {
+  margin: 0 0 var(--space-2);
+}
+
+.solace-msg--assistant p:last-child {
+  margin-bottom: 0;
+}
+
+.solace-msg--assistant strong {
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.solace-msg--assistant em {
+  font-style: italic;
+}
+
+.solace-msg--assistant code {
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-offset);
+}
+
+.solace-msg--assistant pre {
+  margin: var(--space-2) 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-offset);
+  overflow-x: auto;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.solace-msg--assistant pre code {
+  padding: 0;
+  background: none;
+}
+
+.solace-msg--assistant a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-interactive);
+}
+
+.solace-msg--assistant a:hover {
+  color: var(--color-primary-hover);
+}
+
+.solace-msg--assistant ul,
+.solace-msg--assistant ol {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-6);
+}
+
+.solace-msg--assistant li {
+  margin-bottom: var(--space-1);
+}
+
+.solace-msg--assistant li:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Reduced Motion: Widget --- */
+@media (prefers-reduced-motion: reduce) {
+  .solace-launcher,
+  .solace-panel,
+  .solace-msg,
+  .solace-launcher::after {
+    transition-duration: 0s;
+    animation-duration: 0s;
+  }
+
+  .solace-typing-dot {
+    animation: none;
+  }
+
+  .solace-msg--loading .solace-msg-content::after {
+    animation: none;
+    opacity: 1;
+  }
+}
