@@ -136,8 +136,8 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 - What happens when JavaScript is disabled? The widget does not render, no broken controls are shown, and the rest of the static site remains fully usable.
 - What happens when the visitor submits an empty or whitespace-only message? The send control remains disabled and no request is sent.
-- What happens when APIM, the model router, or the agent service is unavailable? The widget shows a friendly recovery message and preserves the draft input or conversation already stored in session state.
-- What happens when APIM returns HTTP 429 because the visitor exceeded 20 requests per minute? The widget explains the temporary limit in plain language and invites the visitor to retry shortly.
+- What happens when APIM, the model, or the upstream service is unavailable? The widget shows a friendly recovery message and preserves the draft input or conversation already stored in session state.
+- What happens when the upstream service returns HTTP 429 due to quota or throttling? The widget explains the temporary limit in plain language and invites the visitor to retry shortly. *(Note: Per-IP rate limiting via APIM policy is deferred — see FR-038 and AD-002. This edge case covers upstream Azure OpenAI throttling.)*
 - What happens when the response stream is interrupted mid-reply? The widget stops the loading state, preserves any partial response already rendered, and offers a retry path.
 - What happens when page context cannot be detected cleanly, such as a missing section anchor or an unexpected title? The request still sends page URL and title if available, falls back to a generic Solace page context, and the agent avoids pretending to know a specific exercise.
 - What happens when a response includes markdown features not supported by the renderer? Unsupported formatting degrades to safe readable text rather than raw HTML injection or broken layout.
@@ -206,11 +206,11 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 **Azure OpenAI Backend & Model Routing**
 - **FR-041**: The backend MUST use direct Azure OpenAI chat completions calls behind APIM (browser → APIM → Azure OpenAI). Azure AI Foundry Agent Service is not used in this release.
-- **FR-042**: The architecture MUST support a single frontend endpoint that can route requests without the browser selecting a model directly.
+- **FR-042**: The architecture MUST support a single frontend endpoint that can route requests without the browser selecting a model directly. *(Satisfied — browser calls `/api/chat`; model selection is server-side.)*
 - **FR-043**: GPT-4.1-mini MUST be the default conversational model path for ordinary Q&A, recommendations, and prompt-building flows.
-- **FR-044**: GPT-5-mini MUST be available as the higher-reasoning path for complex or multi-step questions.
-- **FR-045**: The solution MUST support Azure model routing in Cost mode so routine requests prefer the cheaper model unless complexity warrants escalation.
-- **FR-046**: The architecture MUST allow future enablement of GPT-4o multimodal capabilities without requiring a redesign of the widget shell.
+- **FR-044**: *(Deferred — GPT-5-mini not deployed in this release. Single-model architecture uses GPT-4.1-mini only. Can be added behind the existing APIM endpoint without frontend changes.)*
+- **FR-045**: *(Deferred — Model routing not deployed in this release. Current architecture uses GPT-4.1-mini directly. Azure model routing can be added at the APIM layer without frontend changes.)*
+- **FR-046**: The architecture MUST allow future enablement of GPT-4o multimodal capabilities without requiring a redesign of the widget shell. *(Satisfied — widget shell is model-agnostic.)*
 - **FR-047**: *(Removed — Agent Service memory not applicable for direct Azure OpenAI calls. Conversation state is browser-side only via sessionStorage.)*
 
 **Deployment, Hosting & Domain Migration**

@@ -53,8 +53,8 @@ find-solace/
 ├── home.html               Home Life AI guide + inline agent widget script
 ├── work.html               Work Life AI guide + inline agent widget script
 ├── labs.html                6 DIY exercises + inline agent widget script
-├── style.css                Single stylesheet (~1,509 lines)
-│                            Lines 1187–1601: Solace Agent widget styles
+├── style.css                Single stylesheet (~1,750 lines)
+│                            Lines 1187–1601+: Solace Agent widget styles
 ├── favicon.svg
 ├── robots.txt
 ├── staticwebapp.config.json SWA routing, fallbacks, security headers
@@ -96,7 +96,7 @@ The chat widget is embedded on all 4 HTML pages via identical inline `<script>` 
 
 ### Widget CSS
 
-Widget styles live in `style.css` at approximately lines 1187–1601, organized by implementation task:
+Widget styles live in `style.css` starting at approximately line 1187. Key sections organized by implementation task:
 
 | Lines | Task | Content |
 |---|---|---|
