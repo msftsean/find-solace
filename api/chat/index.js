@@ -25,7 +25,7 @@ module.exports = async function (context, req) {
     return;
   }
 
-  const url = `${gatewayUrl}/solace/chat/completions?api-version=2024-06-01`;
+  const url = `${gatewayUrl}/solace/deployments/gpt-4.1-mini/chat/completions?api-version=2024-06-01`;
 
   try {
     const upstream = await fetch(url, {

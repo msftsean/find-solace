@@ -442,7 +442,20 @@
         '- Never repeat a recommendation the visitor has already declined or completed in this conversation'
       ].join('\n');
 
-      BASE_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT + EXERCISE_KNOWLEDGE + RECOMMENDATION_INSTRUCTIONS;
+      // --- T042: Prompt builder instructions ---
+      var PROMPT_BUILDER_INSTRUCTIONS = [
+        '',
+        'PROMPT BUILDER:',
+        '- When a visitor wants to try a DIY exercise, offer to help them fill in the prompt',
+        '- Identify the [BRACKETED] placeholders in that exercise\'s prompt template',
+        '- Ask conversational follow-up questions to collect values for each placeholder — one or two at a time, not all at once',
+        '- After collecting all values, generate the completed prompt formatted clearly for copy-paste',
+        '- End with: "Copy this prompt and paste it into **[TOOL]**" where TOOL is the exercise\'s recommended tool from the catalog',
+        '- If the visitor changes a value, regenerate the prompt with the update',
+        '- If no prompt template is available in context, use your knowledge of the exercise catalog to guide them'
+      ].join('\n');
+
+      BASE_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT + EXERCISE_KNOWLEDGE + RECOMMENDATION_INSTRUCTIONS + PROMPT_BUILDER_INSTRUCTIONS;
 
       // --- T032: Page context ---
       var pageName = (function() {
@@ -460,6 +473,24 @@
         labs: 'DIY Labs — Hands-On AI Exercises'
       };
 
+      // --- T043: Extract exercise prompt templates on labs page ---
+      var EXERCISE_PROMPTS = {};
+      if (pageName === 'labs') {
+        var labCards = document.querySelectorAll('.lab-card');
+        for (var ci = 0; ci < labCards.length; ci++) {
+          var card = labCards[ci];
+          if (!card.id) continue;
+          var prompts = card.querySelectorAll('.lab-prompt');
+          var steps = [];
+          for (var pi = 0; pi < prompts.length; pi++) {
+            steps.push(prompts[pi].textContent.trim());
+          }
+          if (steps.length) {
+            EXERCISE_PROMPTS[card.id] = steps;
+          }
+        }
+      }
+
       function buildPageContext() {
         var ctx = '\n\n---\nCurrent visitor context:';
         ctx += '\n- Page: ' + pageName + ' (' + (PAGE_TITLES[pageName] || document.title) + ')';
@@ -468,6 +499,14 @@
         var exercise = getActiveExercise();
         ctx += '\n- Active exercise: ' + (exercise ? exercise.title : 'None');
         ctx += '\n- Exercise tool: ' + (exercise ? exercise.tool : 'N/A');
+        // T043: Include prompt template for active exercise
+        if (exercise && exercise.id && EXERCISE_PROMPTS[exercise.id]) {
+          var steps = EXERCISE_PROMPTS[exercise.id];
+          ctx += '\n- Exercise prompt template:';
+          for (var si = 0; si < steps.length; si++) {
+            ctx += '\n  Step ' + (si + 1) + ': ' + steps[si];
+          }
+        }
         return ctx;
       }
 
