@@ -200,7 +200,7 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 - **FR-035**: Browser requests for chat responses MUST be sent to the SWA managed API proxy (`/api/chat` on the same origin), which forwards to Azure API Management. The browser MUST NOT call APIM directly.
 - **FR-036**: The APIM subscription key MUST be stored in SWA application settings and injected server-side by the SWA API proxy. The key MUST NOT appear in frontend code, HTML, or browser network requests.
 - **FR-037**: APIM MUST restrict CORS to the approved production origin for Solace, `https://findsolace.io`, with any additional non-production origins explicitly controlled during development.
-- **FR-038**: APIM MUST enforce a rate limit of 20 requests per minute per client IP for the public chat endpoint.
+- **FR-038**: *(Deferred — APIM Consumption SKU does not support `rate-limit` or `rate-limit-by-key` policies. Rate limiting requires Developer tier or higher. Mitigated by CORS lockdown and APIM subscription key secrecy. See AD-002.)*
 - **FR-039**: APIM MUST return visitor-safe error responses for common failure states such as upstream timeout, upstream quota exhaustion, or policy rejection.
 - **FR-040**: *(Resolved — APIM subscription key is NOT exposed to the browser. SWA API proxy injects it server-side.)*
 
@@ -252,7 +252,7 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 - **SC-005**: In prompt-builder tests, visitors can complete a ready-to-paste customized prompt with no unresolved required placeholders in at least 90% of sampled exercise flows.
 - **SC-006**: After a visitor reports completing an exercise, the agent returns a non-duplicative next-step recommendation in at least 90% of progression test cases.
 - **SC-007**: The widget remains visually consistent with Solace light and dark themes and passes keyboard and screen-reader acceptance testing on all four pages.
-- **SC-008**: Public chat traffic exceeding 20 requests per minute per IP is blocked by APIM with a friendly visitor-facing error state instead of raw backend output.
+- **SC-008**: *(Deferred — Rate limiting not enforceable on APIM Consumption SKU. See FR-038 and AD-002.)*
 - **SC-009**: Production CORS policy allows requests from `https://findsolace.io` and rejects disallowed origins in deployment validation.
 - **SC-010**: No backend secret, Azure OpenAI key, or Foundry credential appears in shipped HTML, inline JavaScript, or CSS.
 - **SC-011**: A push to the main branch triggers GitHub Actions deployment to Azure Static Web Apps without requiring a manual build step.
@@ -271,7 +271,7 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 
 ## Open Questions
 
-- **OQ-001 — APIM tier**: ✅ Resolved — Consumption tier. Pay-per-call pricing, supports required policies. Upgrade path available if traffic grows.
+- **OQ-001 — APIM tier**: ✅ Resolved — Consumption tier. Pay-per-call pricing, supports CORS and Named Values policies. Note: rate-limit policies require Developer tier or higher (see AD-002). Upgrade path available if traffic grows.
 - **OQ-002 — APIM subscription key exposure**: ✅ Resolved — SWA managed API proxy hides the key server-side. Browser calls `/api/chat` on same origin.
 - **OQ-003 — Agent orchestration path**: ✅ Resolved — Direct Azure OpenAI calls behind APIM. No Foundry Agent Service in this release.
 - **OQ-004 — Domain readiness**: ✅ Resolved — `findsolace.io` is owned and available for Azure Static Web Apps custom domain configuration.

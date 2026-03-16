@@ -1356,6 +1356,7 @@ Keep it under 150 words.</pre>
         if (activeStream) { activeStream.abort(); activeStream = null; }
         panel.setAttribute('aria-hidden', 'true');
         launcher.setAttribute('aria-expanded', 'false');
+        launcher.setAttribute('aria-label', 'Open Solace guide');
         if (session) {
           session.isOpen = false;
           saveSession();
@@ -1477,6 +1478,10 @@ Keep it under 150 words.</pre>
       function appendStreamingBubble() {
         var div = document.createElement('div');
         div.className = 'solace-msg solace-msg--assistant solace-msg--loading';
+        var srLabel = document.createElement('span');
+        srLabel.className = 'solace-sr-only';
+        srLabel.textContent = 'Solace said:';
+        div.appendChild(srLabel);
         var inner = document.createElement('div');
         inner.className = 'solace-msg-content';
         div.appendChild(inner);
@@ -1498,6 +1503,7 @@ Keep it under 150 words.</pre>
       function showErrorMessage(message) {
         var div = document.createElement('div');
         div.className = 'solace-msg solace-msg--assistant solace-msg--error';
+        div.setAttribute('role', 'alert');
         var inner = document.createElement('div');
         inner.className = 'solace-msg-content';
         inner.textContent = message;
@@ -1527,6 +1533,10 @@ Keep it under 150 words.</pre>
       function appendBubble(role, content) {
         var div = document.createElement('div');
         div.className = 'solace-msg solace-msg--' + role;
+        var srLabel = document.createElement('span');
+        srLabel.className = 'solace-sr-only';
+        srLabel.textContent = role === 'user' ? 'You said:' : 'Solace said:';
+        div.appendChild(srLabel);
         var inner = document.createElement('div');
         inner.className = 'solace-msg-content';
         if (role === 'assistant') {
@@ -1544,6 +1554,7 @@ Keep it under 150 words.</pre>
         el.className = 'solace-typing';
         el.id = 'solace-typing';
         el.setAttribute('aria-label', 'Solace is thinking');
+        el.setAttribute('role', 'status');
         el.innerHTML = '<span class="solace-typing-dot"></span><span class="solace-typing-dot"></span><span class="solace-typing-dot"></span>';
         transcript.appendChild(el);
         transcript.setAttribute('aria-busy', 'true');
