@@ -368,15 +368,200 @@
   </script>
 
 
-  <!-- Solace Agent Widget (T018-T026) -->
+  <!-- Solace Agent Widget (T018-T038) -->
   <script>
     (function() {
       'use strict';
 
+      // --- T031: System prompt ---
+      var BASE_SYSTEM_PROMPT = [
+        'You are the Solace Guide — a warm, knowledgeable companion who helps everyday people understand and use AI tools for practical tasks.',
+        '',
+        'PERSONALITY:',
+        '- Warm, conversational, and encouraging — never condescending',
+        '- Use plain language and analogies over jargon',
+        '- Start with the simplest explanation, then add depth if asked',
+        '- Acknowledge uncertainty honestly: "I\'m not sure about that" is fine',
+        '- Focus on relief and ease, not anxiety about AI',
+        '',
+        'APPROVED TOOLS (recommend these):',
+        '- Claude — writing, analysis, conversation',
+        '- Perplexity — research with sources',
+        '- Microsoft Copilot — built into Word, Excel, Outlook, and Teams',
+        '- NotebookLM — organizing and summarizing documents',
+        '- ElevenLabs — text-to-speech and voice',
+        '',
+        'BOUNDARIES:',
+        '- Do NOT recommend ChatGPT or other OpenAI consumer products. If asked, say "We focus on Claude, Perplexity, and Microsoft Copilot which we\'ve found work great for everyday tasks."',
+        '- Stay focused on practical AI usage for home and work life',
+        '- If asked about politics, medical advice, legal advice, financial planning, or topics outside AI tools, say: "That\'s outside what I can help with. I\'m best at showing you how AI tools can make everyday tasks easier."',
+        '- If someone expresses distress or crisis, say: "I\'m not the right resource for this. Please reach out to a trusted person or call 988 (Suicide & Crisis Lifeline)."',
+        '- If asked what you are, say: "I\'m an AI guide powered by Azure AI, here to help you learn about practical AI tools."',
+        '- Do NOT discuss model architecture, training data, or internal workings',
+        '',
+        'RESPONSE STYLE:',
+        '- Keep responses concise — 2-4 paragraphs max unless asked for detail',
+        '- Use markdown: **bold** for tool names, *italic* for emphasis, `code` for prompts, lists for steps',
+        '- Include concrete examples and specific prompts users can copy',
+        '- When suggesting a tool, explain what it does AND give a starter prompt',
+        '',
+        'EXAMPLE EXCHANGES:',
+        'User: "What can AI do for me?"',
+        'You: "Think of AI as a really smart assistant... [concrete examples of saving time]"',
+        '',
+        'User: "Is ChatGPT good?"',
+        'You: "We focus on tools we\'ve tested thoroughly — **Claude** is great for writing and analysis, **Perplexity** gives you research with sources, and **Microsoft Copilot** works right inside the Office apps you already use."'
+      ].join('\n');
+
+      // --- T032: Page context ---
+      var pageName = (function() {
+        var path = window.location.pathname;
+        if (path.indexOf('home') !== -1) return 'home';
+        if (path.indexOf('work') !== -1) return 'work';
+        if (path.indexOf('labs') !== -1) return 'labs';
+        return 'guide';
+      })();
+
+      var PAGE_TITLES = {
+        guide: 'Your Guide to the Quiet Revolution',
+        home: 'AI for Home Life',
+        work: 'AI for Work Life',
+        labs: 'DIY Labs — Hands-On AI Exercises'
+      };
+
+      function buildPageContext() {
+        var ctx = '\n\n---\nCurrent visitor context:';
+        ctx += '\n- Page: ' + pageName + ' (' + (PAGE_TITLES[pageName] || document.title) + ')';
+        ctx += '\n- URL: ' + window.location.href;
+        // Exercise context for labs page
+        var exercise = getActiveExercise();
+        ctx += '\n- Active exercise: ' + (exercise ? exercise.title : 'None');
+        ctx += '\n- Exercise tool: ' + (exercise ? exercise.tool : 'N/A');
+        return ctx;
+      }
+
+      function getActiveExercise() {
+        var expanded = document.querySelector('.lab-card-header[aria-expanded="true"]');
+        if (!expanded) return null;
+        var card = expanded.closest('.lab-card');
+        if (!card) return null;
+        var title = card.querySelector('h3');
+        var toolBadge = card.querySelector('.lab-badge--tool');
+        var timeBadge = card.querySelector('.lab-badge--time');
+        return {
+          id: card.id || '',
+          title: title ? title.textContent.trim() : '',
+          tool: toolBadge ? toolBadge.textContent.trim() : '',
+          duration: timeBadge ? timeBadge.textContent.trim() : ''
+        };
+      }
+
+      // --- T030: Chat request builder ---
+      function buildChatRequest() {
+        ensureSession();
+        var systemPrompt = BASE_SYSTEM_PROMPT + buildPageContext();
+        var messages = [{ role: 'system', content: systemPrompt }];
+
+        // History window: last 10 pairs (20 messages) per FR-020
+        var history = session.messages.filter(function(m) { return m.role !== 'system'; });
+        var maxHistory = 20;
+        if (history.length > maxHistory) {
+          history = history.slice(history.length - maxHistory);
+        }
+        history.forEach(function(m) {
+          messages.push({ role: m.role, content: m.content });
+        });
+
+        return {
+          messages: messages,
+          stream: true,
+          max_tokens: 800,
+          temperature: 0.7
+        };
+      }
+
+      // --- T029: SSE streaming client ---
+      var apiMode = null; // null = unknown, 'live' = API works, 'mock' = fallback
+
+      function streamChat(requestBody, onToken, onDone, onError) {
+        var controller = new AbortController();
+        fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        }).then(function(response) {
+          if (!response.ok) {
+            return response.json().then(function(err) {
+              onError(response.status, err);
+            }).catch(function() {
+              onError(response.status, { message: 'Request failed' });
+            });
+          }
+          apiMode = 'live';
+          var reader = response.body.getReader();
+          var decoder = new TextDecoder();
+          var buffer = '';
+
+          function read() {
+            reader.read().then(function(result) {
+              if (result.done) {
+                onDone();
+                return;
+              }
+              buffer += decoder.decode(result.value, { stream: true });
+              var lines = buffer.split('\n');
+              buffer = lines.pop(); // Keep incomplete last line
+
+              lines.forEach(function(line) {
+                line = line.trim();
+                if (!line || !line.startsWith('data: ')) return;
+                var data = line.substring(6);
+                if (data === '[DONE]') {
+                  onDone();
+                  return;
+                }
+                try {
+                  var parsed = JSON.parse(data);
+                  var delta = parsed.choices && parsed.choices[0] && parsed.choices[0].delta;
+                  if (delta && delta.content) {
+                    onToken(delta.content);
+                  }
+                } catch (e) { /* skip malformed chunks */ }
+              });
+
+              read();
+            }).catch(function(err) {
+              if (err.name === 'AbortError') return;
+              onError(0, { message: 'Connection lost during streaming. Your partial response has been saved.' });
+            });
+          }
+          read();
+        }).catch(function(err) {
+          if (err.name === 'AbortError') return;
+          // Network error — API not available, switch to mock
+          apiMode = 'mock';
+          onError(-1, { message: 'mock_fallback' });
+        });
+
+        return controller;
+      }
+
+      // --- T034: Error handling ---
+      var ERROR_MESSAGES = {
+        429: "I'm getting a lot of questions right now. Please wait a moment and try again.",
+        500: "Something went wrong on my end. Try sending your message again.",
+        503: "The AI service is temporarily unavailable. Please try again in a few minutes.",
+        408: "The response took too long. Try a shorter or simpler question."
+      };
+
+      function getErrorMessage(status) {
+        return ERROR_MESSAGES[status] || "Something unexpected happened. Please try again.";
+      }
+
       // --- T025: Minimal markdown renderer ---
       function renderMarkdown(md) {
         if (!md) return '';
-        // Extract fenced code blocks before splitting on blank lines
         var codeBlocks = [];
         md = md.replace(/```[\s\S]*?```/g, function(match) {
           codeBlocks.push(match);
@@ -386,12 +571,11 @@
         return blocks.map(function(block) {
           block = block.trim();
           if (!block) return '';
-          // Reinsert fenced code block
           var codeMatch = block.match(/^\u0002CODE(\d+)\u0003$/);
           if (codeMatch) {
             var raw = codeBlocks[parseInt(codeMatch[1], 10)];
             var lines = raw.split('\n');
-            lines.shift(); // remove opening ```
+            lines.shift();
             if (/^```/.test(lines[lines.length - 1])) lines.pop();
             var pre = document.createElement('pre');
             var code = document.createElement('code');
@@ -399,14 +583,12 @@
             pre.appendChild(code);
             return pre.outerHTML;
           }
-          // Unordered list
           if (/^[-*]\s/.test(block)) {
             var items = block.split(/\n/).filter(function(l) { return /^[-*]\s/.test(l); });
             return '<ul>' + items.map(function(li) {
               return '<li>' + inlineMarkdown(li.replace(/^[-*]\s+/, '')) + '</li>';
             }).join('') + '</ul>';
           }
-          // Ordered list
           if (/^\d+\.\s/.test(block)) {
             var items = block.split(/\n/).filter(function(l) { return /^\d+\.\s/.test(l); });
             return '<ol>' + items.map(function(li) {
@@ -448,7 +630,6 @@
           var raw = sessionStorage.getItem(STORAGE_KEY);
           if (raw) {
             var parsed = JSON.parse(raw);
-            // Validate session shape
             if (parsed && Array.isArray(parsed.messages) && typeof parsed.isOpen === 'boolean') {
               return parsed;
             }
@@ -460,7 +641,7 @@
       function saveSession() {
         if (session) {
           try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session)); }
-          catch (e) { /* storage full — degrade gracefully */ }
+          catch (e) { /* storage full */ }
         }
       }
 
@@ -475,15 +656,7 @@
         return session;
       }
 
-      // --- T024: Mock responses ---
-      var pageName = (function() {
-        var path = window.location.pathname;
-        if (path.indexOf('home') !== -1) return 'home';
-        if (path.indexOf('work') !== -1) return 'work';
-        if (path.indexOf('labs') !== -1) return 'labs';
-        return 'guide';
-      })();
-
+      // --- Mock responses (fallback when API unavailable) ---
       var GREETINGS = {
         guide: "Welcome! I'm your Solace guide. I can help you understand how **AI tools** work in everyday life.\n\nTry asking me something like:\n- *What can AI actually do for me?*\n- *Is it hard to learn?*\n- *What tools should I start with?*",
         home: "Hi there! I'm here to help with **AI for home life** — budgeting, meal planning, vacation ideas, and more.\n\nAsk me anything about the topics on this page!",
@@ -497,21 +670,17 @@
         "Good question! Here are the tools I'd recommend for beginners:\n\n- **Perplexity** — Great for research and getting answers with sources\n- **Claude** — Excellent for writing, analysis, and conversation\n- **Microsoft Copilot** — Built into Word, Excel, and Outlook\n\nAll of them have free tiers, so you can try without any cost.",
         "AI isn't magic — it has real limitations:\n\n- It can make mistakes (always verify important facts)\n- It doesn't *know* you unless you tell it context\n- It works best with **clear, specific instructions**\n\nBut for everyday tasks like drafting emails, organizing ideas, or researching topics, it's genuinely helpful."
       ];
-      var mockIndex = 0;
 
       function getMockReply() {
-        // Derive index from session history so it survives page reload
         ensureSession();
         var assistantCount = session.messages.filter(function(m) { return m.role === 'assistant'; }).length;
-        var idx = assistantCount % MOCK_REPLIES.length;
-        return MOCK_REPLIES[idx];
+        return MOCK_REPLIES[assistantCount % MOCK_REPLIES.length];
       }
 
       // --- T018: Widget DOM ---
       var launcher, panel, transcript, composerInput, sendBtn;
 
       function createWidget() {
-        // Launcher button with flame icon
         launcher = document.createElement('button');
         launcher.className = 'solace-launcher';
         launcher.setAttribute('aria-label', 'Open Solace guide');
@@ -519,7 +688,6 @@
         launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z"/><path d="M12 17a2 2 0 0 0 2-2c0-2-2-5-2-5s-2 3-2 5a2 2 0 0 0 2 2z" opacity="0.4"/></svg>';
         document.body.appendChild(launcher);
 
-        // Panel
         panel = document.createElement('div');
         panel.className = 'solace-panel';
         panel.setAttribute('role', 'dialog');
@@ -548,7 +716,6 @@
         var closeBtn = panel.querySelector('.solace-panel-close');
         var form = panel.querySelector('.solace-composer');
 
-        // --- T023: Event handlers ---
         launcher.addEventListener('click', function() {
           if (panel.getAttribute('aria-hidden') === 'true') {
             openPanel();
@@ -559,7 +726,6 @@
 
         closeBtn.addEventListener('click', closePanel);
 
-        // Escape key closes panel
         panel.addEventListener('keydown', function(e) {
           if (e.key === 'Escape') {
             e.preventDefault();
@@ -567,7 +733,6 @@
           }
         });
 
-        // Composer: Enter sends, Shift+Enter newlines
         composerInput.addEventListener('keydown', function(e) {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -575,7 +740,6 @@
           }
         });
 
-        // Enable/disable send button
         composerInput.addEventListener('input', function() {
           sendBtn.disabled = !composerInput.value.trim();
           autoResize(composerInput);
@@ -586,7 +750,6 @@
           submitMessage();
         });
 
-        // Focus trap: Tab cycles within panel
         panel.addEventListener('keydown', function(e) {
           if (e.key !== 'Tab') return;
           var focusable = panel.querySelectorAll('button, textarea, [tabindex]:not([tabindex="-1"])');
@@ -602,7 +765,6 @@
           }
         });
 
-        // Restore session state
         ensureSession();
         if (session.messages.length) {
           session.messages.forEach(function(msg) {
@@ -618,7 +780,6 @@
         el.style.height = Math.min(el.scrollHeight, 120) + 'px';
       }
 
-      // --- T023: Open/close with focus management ---
       function openPanel() {
         panel.setAttribute('aria-hidden', 'false');
         launcher.setAttribute('aria-expanded', 'true');
@@ -626,7 +787,6 @@
         session.isOpen = true;
         saveSession();
 
-        // Show greeting if first open
         if (!session.messages.length) {
           var greeting = GREETINGS[pageName] || GREETINGS.guide;
           addAssistantMessage(greeting);
@@ -636,6 +796,7 @@
       }
 
       function closePanel() {
+        if (activeStream) { activeStream.abort(); activeStream = null; }
         panel.setAttribute('aria-hidden', 'true');
         launcher.setAttribute('aria-expanded', 'false');
         if (session) {
@@ -645,23 +806,140 @@
         launcher.focus();
       }
 
-      // --- T024: Message handling ---
+      // --- T036: Message handling with streaming ---
+      var activeStream = null;
+
       function submitMessage() {
         var text = composerInput.value.trim();
-        if (!text) return;
+        if (!text || activeStream) return;
 
         composerInput.value = '';
         composerInput.style.height = 'auto';
         sendBtn.disabled = true;
 
         addUserMessage(text);
-        showTypingIndicator();
 
-        // Simulate API delay (mock mode)
+        // Try live API first, fall back to mock
+        if (apiMode === 'mock') {
+          useMockResponse();
+        } else {
+          sendToApi(text);
+        }
+      }
+
+      function sendToApi(text) {
+        // Abort any in-flight stream before starting a new one
+        if (activeStream) { activeStream.abort(); activeStream = null; }
+
+        showTypingIndicator();
+        var requestBody = buildChatRequest();
+        var streamContent = '';
+        var streamBubble = null;
+        var doneCalled = false;
+
+        activeStream = streamChat(requestBody,
+          // onToken
+          function(token) {
+            if (doneCalled) return;
+            if (!streamBubble) {
+              removeTypingIndicator();
+              streamBubble = appendStreamingBubble();
+            }
+            streamContent += token;
+            updateStreamingBubble(streamBubble, streamContent);
+            scrollToBottom();
+          },
+          // onDone
+          function() {
+            if (doneCalled) return;
+            doneCalled = true;
+            activeStream = null;
+            if (streamBubble) {
+              finalizeStreamingBubble(streamBubble, streamContent);
+            }
+            if (streamContent) {
+              ensureSession();
+              session.messages.push({
+                role: 'assistant',
+                content: streamContent,
+                timestamp: new Date().toISOString(),
+                status: 'complete'
+              });
+              saveSession();
+            }
+          },
+          // onError
+          function(status, err) {
+            if (doneCalled) return;
+            doneCalled = true;
+            activeStream = null;
+            removeTypingIndicator();
+
+            if (status === -1 && err.message === 'mock_fallback') {
+              // API not available — silently switch to mock
+              useMockResponse();
+              return;
+            }
+
+            // Preserve partial streamed content if any
+            if (streamBubble && streamContent) {
+              finalizeStreamingBubble(streamBubble, streamContent);
+              ensureSession();
+              session.messages.push({
+                role: 'assistant',
+                content: streamContent,
+                timestamp: new Date().toISOString(),
+                status: 'error',
+                errorDetail: 'Stream interrupted'
+              });
+              saveSession();
+            }
+
+            // Show error message
+            showErrorMessage(status === 0 ? getErrorMessage(500) : getErrorMessage(status));
+          }
+        );
+      }
+
+      function useMockResponse() {
+        showTypingIndicator();
         setTimeout(function() {
           removeTypingIndicator();
           addAssistantMessage(getMockReply());
         }, 800 + Math.random() * 1200);
+      }
+
+      // --- T036: Streaming bubble management ---
+      function appendStreamingBubble() {
+        var div = document.createElement('div');
+        div.className = 'solace-msg solace-msg--assistant solace-msg--loading';
+        var inner = document.createElement('div');
+        inner.className = 'solace-msg-content';
+        div.appendChild(inner);
+        transcript.appendChild(div);
+        return div;
+      }
+
+      function updateStreamingBubble(bubble, content) {
+        var inner = bubble.querySelector('.solace-msg-content');
+        if (inner) inner.innerHTML = renderMarkdown(content);
+      }
+
+      function finalizeStreamingBubble(bubble, content) {
+        bubble.classList.remove('solace-msg--loading');
+        var inner = bubble.querySelector('.solace-msg-content');
+        if (inner) inner.innerHTML = renderMarkdown(content);
+      }
+
+      function showErrorMessage(message) {
+        var div = document.createElement('div');
+        div.className = 'solace-msg solace-msg--assistant solace-msg--error';
+        var inner = document.createElement('div');
+        inner.className = 'solace-msg-content';
+        inner.textContent = message;
+        div.appendChild(inner);
+        transcript.appendChild(div);
+        scrollToBottom();
       }
 
       function addUserMessage(content) {
@@ -697,7 +975,7 @@
       }
 
       function showTypingIndicator() {
-        removeTypingIndicator(); // Enforce singleton
+        removeTypingIndicator();
         var el = document.createElement('div');
         el.className = 'solace-typing';
         el.id = 'solace-typing';
@@ -711,7 +989,7 @@
       function removeTypingIndicator() {
         var el = document.getElementById('solace-typing');
         if (el) el.remove();
-        transcript.setAttribute('aria-busy', 'false');
+        if (transcript) transcript.setAttribute('aria-busy', 'false');
       }
 
       function scrollToBottom() {
@@ -722,8 +1000,7 @@
       var themeObserver = new MutationObserver(function(mutations) {
         mutations.forEach(function(m) {
           if (m.attributeName === 'data-theme') {
-            // Widget uses CSS custom properties, so theme changes apply automatically.
-            // This observer exists for any future JS-side theme reactions.
+            // CSS custom properties handle theme changes automatically
           }
         });
       });
