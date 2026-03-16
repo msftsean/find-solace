@@ -2,7 +2,7 @@
 
 **Feature Branch**: `003-solace-agent`  
 **Created**: 2026-03-15  
-**Status**: Clarified  
+**Status**: Implemented  
 **Supersedes**: `002-ai-chat`  
 **Input**: User description: "Add the Solace Agent as an embedded AI guide across the Solace site, with page-aware Q&A, personalized DIY recommendations, prompt-building help, progressive skill building, Azure Foundry integration, and migration from GitHub Pages to Azure Static Web Apps at findsolace.io."
 
@@ -276,3 +276,47 @@ The maintainer migrates Solace from GitHub Pages to Azure Static Web Apps, conne
 - **OQ-003 — Agent orchestration path**: ✅ Resolved — Direct Azure OpenAI calls behind APIM. No Foundry Agent Service in this release.
 - **OQ-004 — Domain readiness**: ✅ Resolved — `findsolace.io` is owned and available for Azure Static Web Apps custom domain configuration.
 - **OQ-005 — Streaming protocol**: ✅ Resolved — Server-Sent Events (SSE) via Azure OpenAI's native streaming support. SSE is the standard for OpenAI chat completions and works through both SWA proxy and APIM without special configuration.
+
+## Architecture Decisions
+
+Decisions made during implementation that deviated from or refined the original specification.
+
+### AD-001 — Managed Functions over linked backend
+
+**Decision**: Use SWA's built-in managed Azure Functions (`api/` folder) instead of a linked backend or external Function App.
+
+**Reason**: Azure Static Web Apps Free SKU does not support linked backends. Managed Functions are the only server-side option at this tier. The `api/chat/index.js` Function acts as a thin proxy: it receives the chat request from the browser, attaches the APIM subscription key from environment variables, forwards to APIM, and streams the response back.
+
+**Trade-off**: Managed Functions use the v3 runtime model which buffers SSE responses before forwarding to the client. This means the browser receives the full response in one chunk rather than token-by-token streaming. Acceptable for initial launch; true streaming would require upgrading to Standard SKU with a linked backend.
+
+### AD-002 — APIM Consumption SKU limitations
+
+**Decision**: Deploy APIM on the Consumption SKU (~$3.50/million calls).
+
+**Reason**: Lowest-cost option that supports policies, Named Values, and CORS configuration. Suitable for a low-traffic site.
+
+**Trade-off**: Consumption SKU does not support built-in rate-limiting policies (`rate-limit` and `rate-limit-by-key` require Developer tier or higher). The spec called for 20 req/min/IP rate limiting (FR-038), which is not enforceable at this tier. Mitigation: CORS lockdown to the production origin and APIM subscription key secrecy provide the primary abuse prevention. Rate limiting can be added by upgrading to Developer tier or higher if traffic warrants it.
+
+### AD-003 — Client-side system prompt
+
+**Decision**: The system prompt is assembled in the browser and sent with each chat request.
+
+**Reason**: With no server-side orchestration layer (no Agent Service, no backend logic beyond a proxy), the system prompt must originate from the client. The managed Function is a transparent proxy — it does not modify the request payload.
+
+**Trade-off**: The system prompt is inspectable via browser DevTools. This is a known limitation. The prompt contains only behavioral instructions and site knowledge — no secrets, API keys, or sensitive data. A determined user could modify the prompt to change agent behavior for their own session, but this poses no security risk.
+
+### AD-004 — Widget JS duplicated across 4 HTML files
+
+**Decision**: The agent widget's inline `<script>` block is copied identically into `index.html`, `home.html`, `work.html`, and `labs.html`.
+
+**Reason**: Project development rules mandate inline scripts with no external `.js` files (FR-009, FR-010). There is no build step or templating system that could inject a shared script. The four files must be kept in sync manually.
+
+**Trade-off**: Any widget bug fix or feature change must be applied to all 4 files. Risk of drift if an update misses one file. Mitigation: Copilot sessions should always update all 4 HTML files together, and code review should verify consistency.
+
+### AD-005 — SWA v3 Functions response buffering
+
+**Decision**: Accept SWA v3's response buffering behavior rather than upgrading SKU or adding infrastructure.
+
+**Reason**: SWA v3 managed Functions do not support true streaming passthrough. The Function returns `text/event-stream` content type and writes SSE chunks, but the SWA infrastructure buffers the full response before delivering it to the client. The client-side SSE parser still processes the response correctly — it just arrives in one batch rather than incrementally.
+
+**Trade-off**: Users see the full response appear at once after a delay, rather than watching it stream token by token. For the typical response length (1–3 paragraphs), the perceived delay is acceptable. True streaming would require Standard SKU with a linked Azure Functions backend or an alternative hosting approach.

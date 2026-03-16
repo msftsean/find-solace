@@ -461,7 +461,19 @@
         '- If no prompt template is available in context, use your knowledge of the exercise catalog to guide them'
       ].join('\n');
 
-      BASE_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT + EXERCISE_KNOWLEDGE + RECOMMENDATION_INSTRUCTIONS + PROMPT_BUILDER_INSTRUCTIONS;
+      // --- T044: Progressive skill-building instructions ---
+      var PROGRESSIVE_SKILLS_INSTRUCTIONS = [
+        '',
+        'PROGRESSIVE SKILL-BUILDING:',
+        '- Exercise difficulty progression (easiest to hardest): email-drafting → meal-planner → budget-checkin → meeting-prep → resume-refresh → trip-planner',
+        '- When a visitor mentions finishing or trying an exercise, acknowledge their accomplishment briefly and warmly',
+        '- Then suggest the next exercise in the progression that they have NOT already completed',
+        '- Never re-suggest an exercise listed in their completed exercises',
+        '- For new visitors or those unsure where to start, always begin with email-drafting (5 min, easiest win)',
+        '- If a visitor skips ahead or completes out of order, pick the next uncompleted exercise in the progression'
+      ].join('\n');
+
+      BASE_SYSTEM_PROMPT = BASE_SYSTEM_PROMPT + EXERCISE_KNOWLEDGE + RECOMMENDATION_INSTRUCTIONS + PROMPT_BUILDER_INSTRUCTIONS + PROGRESSIVE_SKILLS_INSTRUCTIONS;
 
       // --- T032: Page context ---
       var pageName = (function() {
@@ -749,6 +761,11 @@
         if (!session.visitorProfile && session.visitorProfile !== null) {
           session.visitorProfile = null;
         }
+        // Backfill completedExercises for sessions created before T045
+        if (session.visitorProfile && typeof session.visitorProfile === 'object' &&
+            !Array.isArray(session.visitorProfile) && !Array.isArray(session.visitorProfile.completedExercises)) {
+          session.visitorProfile.completedExercises = [];
+        }
         return session;
       }
 
@@ -897,6 +914,75 @@
       var EXERCISE_IDS = ['trip-planner', 'budget-checkin', 'resume-refresh', 'meeting-prep', 'email-drafting', 'meal-planner'];
       var EXERCISE_TITLES = ['trip planner', 'budget check-in', 'resume refresh', 'meeting prep', 'email drafting', 'meal planner'];
 
+      // --- T045: Detect exercise completion in assistant responses ---
+      // Conservative: requires BOTH a completion signal phrase AND a specific exercise mention.
+      // Uses earliest-position matching to avoid picking a "next suggestion" exercise over the completed one.
+      var COMPLETION_SIGNALS = [
+        'great job completing',
+        'well done on the',
+        "you've completed the",
+        'you completed the',
+        'nicely done with the',
+        "you've finished the",
+        'you finished the',
+        'congratulations on completing',
+        'congratulations on finishing'
+      ];
+
+      function detectExerciseCompletion(assistantText) {
+        var lower = assistantText.toLowerCase();
+        // Find the completion signal and its position
+        var signalPos = -1;
+        var signalLen = 0;
+        for (var s = 0; s < COMPLETION_SIGNALS.length; s++) {
+          var sp = lower.indexOf(COMPLETION_SIGNALS[s]);
+          if (sp !== -1) {
+            signalPos = sp;
+            signalLen = COMPLETION_SIGNALS[s].length;
+            break;
+          }
+        }
+        if (signalPos === -1) return null;
+
+        // Search for exercises after the signal start; take the nearest one
+        var bestId = null;
+        var bestPos = lower.length + 1;
+        for (var i = 0; i < EXERCISE_IDS.length; i++) {
+          var variants = [EXERCISE_IDS[i], EXERCISE_IDS[i].replace(/-/g, ' '), EXERCISE_TITLES[i]];
+          for (var v = 0; v < variants.length; v++) {
+            var pos = lower.indexOf(variants[v], signalPos);
+            if (pos !== -1 && pos < bestPos) {
+              bestPos = pos;
+              bestId = EXERCISE_IDS[i];
+            }
+            if (pos !== -1) break; // found this exercise variant
+          }
+        }
+        return bestId;
+      }
+
+      function trackExerciseCompletion(assistantText) {
+        var exerciseId = detectExerciseCompletion(assistantText);
+        if (!exerciseId) return;
+        ensureSession();
+        if (!session.visitorProfile || typeof session.visitorProfile !== 'object' || Array.isArray(session.visitorProfile)) {
+          session.visitorProfile = {
+            role: null,
+            goals: null,
+            confidenceLevel: null,
+            completedExercises: [],
+            interests: []
+          };
+        }
+        if (!Array.isArray(session.visitorProfile.completedExercises)) {
+          session.visitorProfile.completedExercises = [];
+        }
+        if (session.visitorProfile.completedExercises.indexOf(exerciseId) === -1) {
+          session.visitorProfile.completedExercises.push(exerciseId);
+          saveSession();
+        }
+      }
+
       function detectSuggestionContext(assistantText) {
         var lower = assistantText.toLowerCase();
 
@@ -1021,7 +1107,7 @@
               '<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
             '</button>' +
           '</div>' +
-          '<div class="solace-transcript" aria-live="polite" aria-relevant="additions"></div>' +
+          '<div class="solace-transcript" role="log" aria-live="polite" aria-relevant="additions"></div>' +
           '<form class="solace-composer" autocomplete="off">' +
             '<textarea class="solace-composer-input" placeholder="Ask me anything\u2026" rows="1" aria-label="Type your message"></textarea>' +
             '<button type="submit" class="solace-composer-send" aria-label="Send message" disabled>' +
@@ -1073,7 +1159,7 @@
 
         panel.addEventListener('keydown', function(e) {
           if (e.key !== 'Tab') return;
-          var focusable = panel.querySelectorAll('button, textarea, [tabindex]:not([tabindex="-1"])');
+          var focusable = panel.querySelectorAll('button, textarea, a[href], [tabindex]:not([tabindex="-1"])');
           if (!focusable.length) return;
           var first = focusable[0];
           var last = focusable[focusable.length - 1];
@@ -1104,6 +1190,7 @@
       function openPanel() {
         panel.setAttribute('aria-hidden', 'false');
         launcher.setAttribute('aria-expanded', 'true');
+        launcher.setAttribute('aria-label', 'Close Solace guide');
         ensureSession();
         session.isOpen = true;
         saveSession();
@@ -1192,6 +1279,7 @@
                 timestamp: new Date().toISOString(),
                 status: 'complete'
               });
+              trackExerciseCompletion(streamContent);
               saveSession();
               createSuggestionChips(streamContent, transcript);
             }
@@ -1244,7 +1332,7 @@
         var div = document.createElement('div');
         div.className = 'solace-msg solace-msg--assistant solace-msg--loading';
         var srLabel = document.createElement('span');
-        srLabel.className = 'solace-sr-only';
+        srLabel.className = 'sr-only';
         srLabel.textContent = 'Solace said:';
         div.appendChild(srLabel);
         var inner = document.createElement('div');
@@ -1290,6 +1378,7 @@
         ensureSession();
         var msg = { role: 'assistant', content: content, timestamp: new Date().toISOString(), status: 'complete' };
         session.messages.push(msg);
+        trackExerciseCompletion(content);
         saveSession();
         appendBubble('assistant', content);
         scrollToBottom();
@@ -1299,7 +1388,7 @@
         var div = document.createElement('div');
         div.className = 'solace-msg solace-msg--' + role;
         var srLabel = document.createElement('span');
-        srLabel.className = 'solace-sr-only';
+        srLabel.className = 'sr-only';
         srLabel.textContent = role === 'user' ? 'You said:' : 'Solace said:';
         div.appendChild(srLabel);
         var inner = document.createElement('div');
