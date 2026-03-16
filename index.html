@@ -866,8 +866,9 @@
         ]
       };
 
-      // Exercise IDs used for topic detection
+      // Exercise IDs and titles used for topic detection
       var EXERCISE_IDS = ['trip-planner', 'budget-checkin', 'resume-refresh', 'meeting-prep', 'email-drafting', 'meal-planner'];
+      var EXERCISE_TITLES = ['trip planner', 'budget check-in', 'resume refresh', 'meeting prep', 'email drafting', 'meal planner'];
 
       function detectSuggestionContext(assistantText) {
         var lower = assistantText.toLowerCase();
@@ -877,10 +878,12 @@
           return 'afterCompletion';
         }
 
-        // Check if assistant recommended an exercise
+        // Check if assistant recommended an exercise (match IDs, space-separated IDs, and display titles)
         var mentionsExercise = false;
         for (var i = 0; i < EXERCISE_IDS.length; i++) {
-          if (lower.indexOf(EXERCISE_IDS[i].replace('-', ' ')) !== -1 || lower.indexOf(EXERCISE_IDS[i]) !== -1) {
+          if (lower.indexOf(EXERCISE_IDS[i]) !== -1 ||
+              lower.indexOf(EXERCISE_IDS[i].replace('-', ' ')) !== -1 ||
+              lower.indexOf(EXERCISE_TITLES[i]) !== -1) {
             mentionsExercise = true;
             break;
           }
