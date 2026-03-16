@@ -5,3 +5,14 @@
 .squad/sessions/
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Azure Functions local settings (contains secrets)
+api/local.settings.json
+
+# OS files
+.DS_Store
+Thumbs.db
