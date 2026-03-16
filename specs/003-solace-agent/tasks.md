@@ -58,7 +58,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement inline `<script>` widget bootstrapper in `index.html`: create launcher button DOM (`<button class="solace-launcher">`), panel DOM structure (`<div class="solace-panel" role="dialog" aria-label="Solace Guide">`), panel header with title and close button, transcript container (`<div class="solace-transcript" aria-live="polite">`), composer form with textarea and send button, "Powered by Azure AI" attribution
+- [ ] T018 [US1] Implement inline `<script>` widget bootstrapper in `index.html`: create launcher button DOM (`<button class="solace-launcher">`) with a warm flame/sun SVG icon matching Solace's golden-hour aesthetic (FR-003 — not a robot or headset icon), panel DOM structure (`<div class="solace-panel" role="dialog" aria-label="Solace Guide">`), panel header with title and minimize/close button, transcript container (`<div class="solace-transcript" aria-live="polite">`), composer form with textarea and send button, "Powered by Azure AI" attribution
 - [ ] T019 [P] [US1] Implement inline `<script>` widget bootstrapper in `home.html`: same widget HTML structure as T018 (shared pattern, separate inline block per dev rules)
 - [ ] T020 [P] [US1] Implement inline `<script>` widget bootstrapper in `work.html`: same widget HTML structure as T018
 - [ ] T021 [P] [US1] Implement inline `<script>` widget bootstrapper in `labs.html`: same widget HTML structure as T018
@@ -85,7 +85,7 @@
 ### Implementation for User Story 2
 
 - [ ] T029 [US2] Implement SSE streaming client in `index.html` inline script: `fetch('/api/chat', { method: 'POST', ... })` with `response.body.getReader()`, `TextDecoder` for chunk parsing, SSE `data:` line extraction, `[DONE]` sentinel handling, partial line buffering across chunks per research.md R4 and contracts/chat-api.md
-- [ ] T030 [US2] Implement `ChatRequest` payload builder in `index.html` inline script: compose `messages` array with system prompt (role: system) + conversation history (last 10 pairs per FR-020/data-model.md), set `stream: true`, `max_tokens: 800`, `temperature: 0.7` per contracts/chat-api.md
+- [ ] T030 [US2] Implement `ChatRequest` payload builder in `index.html` inline script: compose `messages` array with system prompt (role: system) + conversation history (last 10 pairs per FR-020/data-model.md), set `stream: true`, `max_tokens: 800`, `temperature: 0.7` per contracts/chat-api.md. Structure request body to allow future addition of an `images` array field for GPT-4o multimodal support (FR-046) without requiring frontend redesign
 - [ ] T031 [US2] Write base system prompt constant in `index.html` inline script: Solace Guide personality, approved tools list (Claude, Perplexity, Microsoft Copilot, NotebookLM, ElevenLabs), ChatGPT exclusion scoped to consumer products (FR-031/031a), off-topic redirect with explicit out-of-scope categories (FR-032/032a), uncertainty acknowledgment with training cutoff (FR-033), simplest-level-first explanations (FR-034), few-shot example exchanges (FR-034a), Azure AI identity guidance per content-review.md
 - [ ] T032 [US2] Implement page context detection in `index.html` inline script: extract `PageContext` entity (url, title, pageName derived from pathname) per data-model.md, append context block to system prompt on each request (FR-025/FR-026)
 - [ ] T033 [US2] Implement labs.html-specific exercise context detection in `labs.html` inline script: detect active `.lab-card` with `aria-expanded="true"`, extract `ExerciseContext` entity (id, title, tool from `.lab-badge--tool`, duration from `.lab-badge--time`) per data-model.md, include in page context block (FR-026)
@@ -165,7 +165,8 @@
 - [ ] T047 [P] [US7] Configure custom domain `findsolace.io` on SWA: add TXT record `_dnsauth.findsolace.io`, CNAME `www` → `<app>.azurestaticapps.net`, ALIAS/ANAME for apex domain per research.md R7 and quickstart.md
 - [ ] T048 [P] [US7] Update `robots.txt` to allow indexing: change from `Disallow: /` to appropriate `Allow` rules for public site launch
 - [ ] T049 [US7] Update APIM CORS policy to use production origin `https://findsolace.io` (remove or restrict dev origins)
-- [ ] T050 [US7] Validate end-to-end: push to main → GitHub Actions deploys → `https://findsolace.io` loads → widget connects to APIM → chat works with streaming response → CORS blocks non-production origins
+- [ ] T049a [P] [US7] Configure redirect from legacy GitHub Pages URL (`msftsean.github.io/find-solace`) to `https://findsolace.io`: either via GitHub Pages custom 404 with meta-refresh, or by updating the GitHub repo settings to point to the new domain (FR-054)
+- [ ] T050 [US7] Validate end-to-end: push to main → GitHub Actions deploys → `https://findsolace.io` loads → widget connects to APIM → chat works with streaming response → CORS blocks non-production origins. Also verify: no secrets in shipped code (SC-010), response latency <2s (SC-002)
 
 **Checkpoint**: Site live at findsolace.io with SSL, automated deployment, and working chat agent.
 
