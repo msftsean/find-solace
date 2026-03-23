@@ -542,6 +542,24 @@ Keep it under 150 words.</pre>
     </div>
   </footer>
 
+  <!-- Email Popup Modal -->
+  <div class="email-popup-overlay" id="email-popup-overlay" role="dialog" aria-label="Email signup" aria-modal="true">
+    <div class="email-popup">
+      <button class="email-popup-close" id="email-popup-close" aria-label="Close">&times;</button>
+      <h3>Enjoying the guide?</h3>
+      <p>Get 6 ready-to-use AI prompts — free, no strings attached. Join readers who are saving hours every week.</p>
+      <form class="email-popup-form" id="popup-signup-form" aria-label="Email signup for AI Starter Kit">
+        <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
+        <input type="hidden" name="ts" value="">
+        <input type="email" name="email" placeholder="you@example.com" required aria-label="Email address">
+        <button type="submit">Send me the free kit →</button>
+      </form>
+      <p class="email-popup-privacy"><a href="./privacy.html">We respect your privacy</a></p>
+      <p class="email-popup-success" id="popup-signup-success" style="display:none;">✓ You're in! <a href="./assets/ai-starter-kit.html" target="_blank">Download your kit</a></p>
+      <p class="email-popup-error" id="popup-signup-error" style="display:none;"></p>
+    </div>
+  </div>
+
   <!-- Consent Banner -->
   <div class="consent-banner" id="consent-banner" role="dialog" aria-label="Analytics consent">
     <div class="container">
@@ -685,6 +703,7 @@ Keep it under 150 words.</pre>
             if (data.success) {
               form.style.display = 'none';
               successEl.style.display = 'block';
+              localStorage.setItem('solace-subscribed', '1');
               if (window.appInsights) {
                 window.appInsights.trackEvent({ name: 'email_subscribed', properties: { source: source } });
               }
@@ -708,6 +727,56 @@ Keep it under 150 words.</pre>
       var footerSuccess = document.getElementById('footer-signup-success');
       var footerError = document.getElementById('footer-signup-error');
       if (footerForm) handleSignup(footerForm, footerSuccess, footerError, 'footer');
+
+      // Popup modal signup
+      var popupOverlay = document.getElementById('email-popup-overlay');
+      var popupForm = document.getElementById('popup-signup-form');
+      var popupSuccess = document.getElementById('popup-signup-success');
+      var popupError = document.getElementById('popup-signup-error');
+      var popupClose = document.getElementById('email-popup-close');
+
+      if (popupForm) {
+        handleSignup(popupForm, popupSuccess, popupError, 'popup');
+
+        var popupObserver = new MutationObserver(function() {
+          if (popupSuccess.style.display === 'block') {
+            localStorage.setItem('solace-subscribed', '1');
+            setTimeout(function() { closePopup(); }, 3000);
+          }
+        });
+        popupObserver.observe(popupSuccess, { attributes: true, attributeFilter: ['style'] });
+      }
+
+      function closePopup() {
+        if (popupOverlay) {
+          popupOverlay.classList.remove('is-visible');
+          localStorage.setItem('solace-popup-dismissed', '1');
+        }
+      }
+
+      if (popupClose) {
+        popupClose.addEventListener('click', closePopup);
+      }
+      if (popupOverlay) {
+        popupOverlay.addEventListener('click', function(e) {
+          if (e.target === popupOverlay) closePopup();
+        });
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape' && popupOverlay.classList.contains('is-visible')) closePopup();
+        });
+      }
+
+      var alreadyDismissed = localStorage.getItem('solace-popup-dismissed');
+      var alreadySubscribed = localStorage.getItem('solace-subscribed');
+      if (!alreadyDismissed && !alreadySubscribed && popupOverlay) {
+        setTimeout(function() {
+          if (localStorage.getItem('solace-subscribed') || localStorage.getItem('solace-popup-dismissed')) return;
+          popupOverlay.classList.add('is-visible');
+          if (window.appInsights) {
+            window.appInsights.trackEvent({ name: 'popup_shown' });
+          }
+        }, 45000);
+      }
 
       var banner = document.getElementById('consent-banner');
       var consent = localStorage.getItem('solace-analytics-consent');

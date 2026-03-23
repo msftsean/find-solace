@@ -1,0 +1,72 @@
+{
+	"servers": {
+		"com.microsoft/azure": {
+			"type": "stdio",
+			"command": "dnx",
+			"args": [
+				"Azure.Mcp@2.0.0-beta.31",
+				"--yes",
+				"--",
+				"server",
+				"start"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "2.0.0-beta.31"
+		},
+		"io.github.upstash/context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@upstash/context7-mcp@1.0.31"
+			],
+			"env": {
+				"CONTEXT7_API_KEY": "${input:CONTEXT7_API_KEY}"
+			},
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.31"
+		},
+		"microsoft/playwright-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@playwright/mcp@latest"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.0.1-seed"
+		},
+		"io.github.github/github-mcp-server": {
+			"type": "stdio",
+			"command": "docker",
+			"args": [
+				"run",
+				"-i",
+				"--rm",
+				"-e",
+				"GITHUB_PERSONAL_ACCESS_TOKEN=${input:token}",
+				"ghcr.io/github/github-mcp-server:0.33.0"
+			],
+			"gallery": "https://api.mcp.github.com",
+			"version": "0.33.0"
+		},
+		"microsoftdocs/mcp": {
+			"type": "http",
+			"url": "https://learn.microsoft.com/api/mcp",
+			"gallery": "https://api.mcp.github.com",
+			"version": "1.0.0"
+		}
+	},
+	"inputs": [
+		{
+			"id": "CONTEXT7_API_KEY",
+			"type": "promptString",
+			"description": "API key for authentication",
+			"password": true
+		},
+		{
+			"id": "token",
+			"type": "promptString",
+			"description": "",
+			"password": true
+		}
+	]
+}
