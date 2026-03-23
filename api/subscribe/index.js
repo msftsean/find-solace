@@ -10,6 +10,8 @@ var { SmsClient } = require("@azure/communication-sms");
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var MIN_SUBMIT_MS = 3000; // 3 seconds minimum between page load and submit
 var SMS_FROM = "+18332711500";
+var RATE_LIMIT_MAX = 5;       // max submissions per IP per window
+var RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
 
 module.exports = async function (context, req) {
   var connStr = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -69,13 +71,62 @@ module.exports = async function (context, req) {
     return;
   }
 
+  // Hash the IP for abuse tracking (not raw IP)
+  var clientIp = req.headers["x-forwarded-for"] || req.headers["x-client-ip"] || "unknown";
+  var ipHash = crypto.createHash("sha256").update(clientIp.split(",")[0].trim()).digest("hex").substring(0, 16);
+
   try {
     var tableClient = TableClient.fromConnectionString(connStr, "subscribers");
-    var rowKey = crypto.createHash("sha256").update(email).digest("hex");
 
-    // Hash the IP for abuse tracking (not raw IP)
-    var clientIp = req.headers["x-forwarded-for"] || req.headers["x-client-ip"] || "unknown";
-    var ipHash = crypto.createHash("sha256").update(clientIp.split(",")[0].trim()).digest("hex").substring(0, 16);
+    // Rate limiting: check recent submissions from this IP
+    var rateKey = "rate-" + ipHash;
+    try {
+      var rateEntity = await tableClient.getEntity("ratelimit", rateKey);
+      var windowStart = new Date(rateEntity.windowStart).getTime();
+      var count = rateEntity.count || 0;
+      if (Date.now() - windowStart < RATE_LIMIT_WINDOW_MS && count >= RATE_LIMIT_MAX) {
+        context.log.warn("Rate limit exceeded for IP hash: " + ipHash);
+        context.res = {
+          status: 429,
+          headers: { "Content-Type": "application/json", "Retry-After": "3600" },
+          body: { error: "Too many requests. Please try again later." },
+        };
+        return;
+      }
+      // Within window but under limit — increment
+      if (Date.now() - windowStart < RATE_LIMIT_WINDOW_MS) {
+        await tableClient.upsertEntity({
+          partitionKey: "ratelimit",
+          rowKey: rateKey,
+          windowStart: rateEntity.windowStart,
+          count: count + 1,
+        });
+      } else {
+        // Window expired — reset
+        await tableClient.upsertEntity({
+          partitionKey: "ratelimit",
+          rowKey: rateKey,
+          windowStart: new Date().toISOString(),
+          count: 1,
+        });
+      }
+    } catch (rateErr) {
+      // Entity doesn't exist — first request from this IP
+      if (rateErr.statusCode === 404) {
+        await tableClient.upsertEntity({
+          partitionKey: "ratelimit",
+          rowKey: rateKey,
+          windowStart: new Date().toISOString(),
+          count: 1,
+        });
+      }
+      // Other errors — don't block the signup, just log
+      else {
+        context.log.warn("Rate limit check failed:", rateErr.message);
+      }
+    }
+
+    var rowKey = crypto.createHash("sha256").update(email).digest("hex");
 
     await tableClient.upsertEntity({
       partitionKey: "newsletter",

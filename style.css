@@ -20,6 +20,7 @@
   --color-secondary: #5B7F6E;
   --color-divider: #DDD5CA;
   --color-border: #D1C7BA;
+  --color-error: #c44;
 
   /* Type scale */
   --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.8125rem);
@@ -81,6 +82,7 @@
   --color-secondary: #7DA28E;
   --color-divider: #3A342D;
   --color-border: #4A4238;
+  --color-error: #e88;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -756,7 +758,7 @@ a.card:hover .card-link svg {
 
 .footer-signup-error {
   font-size: var(--text-sm);
-  color: #c44;
+  color: var(--color-error);
 }
 
 .footer-signup-privacy {
