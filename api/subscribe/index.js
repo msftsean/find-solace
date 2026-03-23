@@ -5,11 +5,10 @@
  */
 var crypto = require("crypto");
 var { TableClient } = require("@azure/data-tables");
-var { SmsClient } = require("@azure/communication-sms");
+var { EmailClient } = require("@azure/communication-email");
 
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var MIN_SUBMIT_MS = 3000; // 3 seconds minimum between page load and submit
-var SMS_FROM = "+18332711500";
 var RATE_LIMIT_MAX = 5;       // max submissions per IP per window
 var RATE_LIMIT_WINDOW_MS = 3600000; // 1 hour
 
@@ -137,19 +136,28 @@ module.exports = async function (context, req) {
       ipHash: ipHash,
     });
 
-    // SMS notification to owner (non-blocking — don't fail the signup if SMS fails)
+    // Email notification to owner (non-blocking — don't fail the signup if email fails)
     var acsConn = process.env.ACS_CONNECTION_STRING;
-    var notifyPhone = process.env.NOTIFY_PHONE_NUMBER;
-    if (acsConn && notifyPhone) {
+    var notifyEmail = process.env.NOTIFY_EMAIL;
+    var senderEmail = process.env.SENDER_EMAIL;
+    if (acsConn && notifyEmail && senderEmail) {
       try {
-        var smsClient = new SmsClient(acsConn);
-        await smsClient.send({
-          from: SMS_FROM,
-          to: [notifyPhone],
-          message: "Solace signup: " + email + " (" + source + ")",
+        var emailClient = new EmailClient(acsConn);
+        // Fire-and-forget: don't await pollUntilDone so signup response isn't delayed
+        emailClient.beginSend({
+          senderAddress: senderEmail,
+          content: {
+            subject: "Solace signup: " + email,
+            plainText: "New signup on Solace!\n\nEmail: " + email + "\nSource: " + source + "\nTime: " + new Date().toISOString(),
+          },
+          recipients: {
+            to: [{ address: notifyEmail }],
+          },
+        }).catch(function (emailErr) {
+          context.log.warn("Email notification failed:", emailErr.message);
         });
-      } catch (smsErr) {
-        context.log.warn("SMS notification failed:", smsErr.message);
+      } catch (emailErr) {
+        context.log.warn("Email notification failed:", emailErr.message);
       }
     }
 
