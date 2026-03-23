@@ -711,9 +711,7 @@ Keep it under 150 words.</pre>
 
       var banner = document.getElementById('consent-banner');
       var consent = localStorage.getItem('solace-analytics-consent');
-      if (navigator.doNotTrack === '1' || window.doNotTrack === '1') {
-        // DNT enabled
-      } else if (!consent && banner) {
+      if (!consent && banner) {
         setTimeout(function() { banner.classList.add('is-visible'); }, 1500);
       }
 
