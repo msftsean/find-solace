@@ -1081,9 +1081,9 @@
       function createWidget() {
         launcher = document.createElement('button');
         launcher.className = 'solace-launcher';
-        launcher.setAttribute('aria-label', 'Open Solace guide');
+        launcher.setAttribute('aria-label', 'Ask the Solace AI');
         launcher.setAttribute('aria-expanded', 'false');
-        launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z"/><path d="M12 17a2 2 0 0 0 2-2c0-2-2-5-2-5s-2 3-2 5a2 2 0 0 0 2 2z" opacity="0.4"/></svg>';
+        launcher.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z"/><path d="M12 17a2 2 0 0 0 2-2c0-2-2-5-2-5s-2 3-2 5a2 2 0 0 0 2 2z" opacity="0.4"/></svg><span class="solace-launcher-label">Ask the Solace AI</span>';
         document.body.appendChild(launcher);
 
         // CTA label for first-time visitors
@@ -1199,7 +1199,7 @@
         if (ctaEl) { ctaEl.classList.add('cta-hidden'); }
         launcher.classList.remove('cta-pulse');
         sessionStorage.setItem('solace-cta-seen', '1');
-        launcher.setAttribute('aria-label', 'Close Solace guide');
+        launcher.setAttribute('aria-label', 'Close chat');
         ensureSession();
         session.isOpen = true;
         saveSession();
@@ -1217,7 +1217,7 @@
         if (activeStream) { activeStream.abort(); activeStream = null; }
         panel.setAttribute('aria-hidden', 'true');
         launcher.setAttribute('aria-expanded', 'false');
-        launcher.setAttribute('aria-label', 'Open Solace guide');
+        launcher.setAttribute('aria-label', 'Ask the Solace AI');
         if (session) {
           session.isOpen = false;
           saveSession();

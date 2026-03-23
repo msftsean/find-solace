@@ -1199,10 +1199,12 @@ a.card:hover .card-link svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
+  width: auto;
   height: 56px;
   border: none;
-  border-radius: 50%;
+  border-radius: 28px;
+  padding: 0 var(--space-4) 0 var(--space-3);
+  gap: var(--space-2);
   background: var(--color-primary);
   color: #fff;
   cursor: pointer;
@@ -1214,7 +1216,7 @@ a.card:hover .card-link svg {
 }
 
 .solace-launcher:hover {
-  transform: scale(1.08);
+  transform: scale(1.04);
   box-shadow: var(--shadow-lg);
   background: var(--color-primary-hover);
 }
@@ -1229,7 +1231,14 @@ a.card:hover .card-link svg {
 }
 
 .solace-launcher[aria-expanded="true"] {
+  width: 56px;
+  padding: 0;
+  justify-content: center;
   transform: rotate(90deg) scale(0.9);
+}
+
+.solace-launcher[aria-expanded="true"] .solace-launcher-label {
+  display: none;
 }
 
 .solace-launcher svg {
@@ -1239,12 +1248,20 @@ a.card:hover .card-link svg {
   pointer-events: none;
 }
 
+.solace-launcher-label {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Warm flame icon glow */
 .solace-launcher::after {
   content: '';
   position: absolute;
   inset: -4px;
-  border-radius: 50%;
+  border-radius: inherit;
   background: radial-gradient(circle, oklch(0.75 0.12 55 / 0.25), transparent 70%);
   z-index: -1;
   opacity: 0;
@@ -1600,8 +1617,13 @@ a.card:hover .card-link svg {
   .solace-launcher {
     bottom: var(--space-4);
     right: var(--space-4);
-    width: 52px;
-    height: 52px;
+    height: 48px;
+    border-radius: 24px;
+  }
+
+  .solace-launcher svg {
+    width: 24px;
+    height: 24px;
   }
 
   .solace-panel {
