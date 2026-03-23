@@ -741,7 +741,6 @@ Keep it under 150 words.</pre>
         var popupObserver = new MutationObserver(function() {
           if (popupSuccess.style.display === 'block') {
             localStorage.setItem('solace-subscribed', '1');
-            setTimeout(function() { closePopup(); }, 3000);
           }
         });
         popupObserver.observe(popupSuccess, { attributes: true, attributeFilter: ['style'] });
