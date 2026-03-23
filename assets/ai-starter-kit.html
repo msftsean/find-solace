@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your AI Starter Kit — 6 Ready-to-Use Prompts</title>
+  <style>
+    /* ── Reset & Base ────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FAF8F5;
+      color: #2C2418;
+      line-height: 1.65;
+      padding: 2rem 1.5rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ──────────────────────────────────────── */
+    .kit-header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+      padding-bottom: 2rem;
+      border-bottom: 2px solid #B87333;
+    }
+
+    .kit-header h1 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 2rem;
+      color: #2C2418;
+      line-height: 1.2;
+      margin-bottom: 0.5rem;
+    }
+
+    .kit-header .subtitle {
+      color: #8B7E6E;
+      font-size: 0.95rem;
+    }
+
+    .kit-header .intro {
+      margin-top: 1rem;
+      font-size: 0.95rem;
+      color: #2C2418;
+      max-width: 55ch;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Print Button ────────────────────────────────── */
+    .print-btn {
+      display: inline-block;
+      margin-top: 1.25rem;
+      padding: 0.6rem 1.5rem;
+      background: #B87333;
+      color: #FAF8F5;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .print-btn:hover { background: #9A5F28; }
+
+    /* ── Exercise Card ───────────────────────────────── */
+    .exercise {
+      background: #F5F0EB;
+      border: 1px solid #E5DDD3;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      page-break-inside: avoid;
+    }
+
+    .exercise-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+    }
+
+    .exercise-number {
+      display: inline-block;
+      background: #B87333;
+      color: #FAF8F5;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.15rem 0.6rem;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    .exercise h2 {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 1.35rem;
+      color: #2C2418;
+      line-height: 1.25;
+    }
+
+    .exercise-meta {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      letter-spacing: 0.01em;
+    }
+
+    .badge--tool {
+      background: #B8733322;
+      color: #B87333;
+      border: 1px solid #B8733344;
+    }
+
+    .badge--time {
+      background: #5B7F6E22;
+      color: #5B7F6E;
+      border: 1px solid #5B7F6E44;
+    }
+
+    .exercise-desc {
+      font-size: 0.9rem;
+      color: #8B7E6E;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Prompt Box ───────────────────────────────────── */
+    .prompt-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #B87333;
+      margin-bottom: 0.35rem;
+    }
+
+    .prompt-box {
+      background: #FFFDF9;
+      border: 1px solid #DDD5CA;
+      border-left: 3px solid #B87333;
+      border-radius: 6px;
+      padding: 1rem 1.25rem;
+      font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', Menlo, monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      color: #2C2418;
+      margin-bottom: 1rem;
+    }
+
+    .prompt-box .placeholder {
+      background: #B8733318;
+      color: #B87333;
+      padding: 0.05rem 0.2rem;
+      border-radius: 3px;
+      font-weight: 600;
+    }
+
+    /* ── What You'll Get ─────────────────────────────── */
+    .result-box {
+      background: #5B7F6E11;
+      border: 1px solid #5B7F6E33;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: #2C2418;
+    }
+
+    .result-box strong {
+      color: #5B7F6E;
+    }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .kit-footer {
+      text-align: center;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 2px solid #B87333;
+      color: #8B7E6E;
+      font-size: 0.85rem;
+    }
+
+    .kit-footer strong {
+      color: #B87333;
+    }
+
+    .kit-footer .tip {
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: #8B7E6E;
+    }
+
+    /* ── Print Styles ────────────────────────────────── */
+    @media print {
+      body {
+        padding: 0;
+        font-size: 11pt;
+        background: #fff;
+        color: #000;
+        max-width: none;
+      }
+
+      .print-btn { display: none !important; }
+
+      .kit-header {
+        border-bottom-color: #B87333;
+      }
+
+      .exercise {
+        border: 1px solid #ccc;
+        background: #f9f7f4;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+
+      .prompt-box {
+        background: #fff;
+        border-color: #ccc;
+        border-left-color: #B87333;
+        font-size: 9pt;
+      }
+
+      .badge--tool, .badge--time {
+        border: 1px solid #999;
+      }
+
+      .kit-footer {
+        border-top-color: #B87333;
+      }
+
+      a { color: inherit; text-decoration: none; }
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .kit-header h1 { font-size: 1.5rem; }
+      .exercise { padding: 1rem; }
+      .prompt-box { font-size: 0.78rem; padding: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="kit-header">
+    <h1>Your AI Starter Kit</h1>
+    <p class="subtitle">6 Ready-to-Use Prompts &middot; From <strong>Solace</strong> &mdash; findsolace.io</p>
+    <p class="intro">Copy any prompt below, replace the <span style="color:#B87333;font-weight:600;">[BRACKETED]</span> placeholders with your details, and paste into <a href="https://copilot.microsoft.com" style="color:#B87333;">copilot.microsoft.com</a>. That's it. No setup, no account upgrades — just real results.</p>
+    <button class="print-btn" onclick="window.print()">&#128438; Print / Save as PDF</button>
+  </header>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Exercise 1: Weekend Trip Planner                -->
+  <!-- ════════════════════════════════════════════════ -->
+  <article class="exercise">
+    <div class="exercise-header">
+      <span class="exercise-number">1</span>
+      <h2>Weekend Trip Planner</h2>
+    </div>
+    <div class="exercise-meta">
+      <span class="badge badge--tool">Copilot</span>
+      <span class="badge badge--time">10 min</span>
+    </div>
+    <p class="exercise-desc">Go from "let's go somewhere" to a full itinerary with hotels, restaurants, and local secrets — in one conversation.</p>
+
+    <p class="prompt-label">&#9998; Prompt — paste into Copilot</p>
+    <div class="prompt-box">I want to plan a [NUMBER]-day trip to [DESTINATION] in [MONTH]. I enjoy [INTERESTS — e.g., food, history, nature]. My budget is around $[AMOUNT] per day not including flights. Give me a day-by-day itinerary with specific restaurant and hotel recommendations, best neighborhoods to stay in, and one local experience most tourists miss.</div>
+
+    <p class="prompt-label">&#128260; Follow-up — same conversation</p>
+    <div class="prompt-box">Based on the itinerary you just created, give me a packing checklist. Include weather-appropriate clothing for [MONTH] in [DESTINATION], any gear I'll need for the activities, and travel documents I shouldn't forget.</div>
+
+    <div class="result-box">
+      <strong>What you'll get:</strong> A day-by-day itinerary with real hotel & restaurant picks, plus a weather-specific packing list — all from one conversation instead of hours of tab-hopping.
+    </div>
+  </article>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Exercise 2: Monthly Budget Check-In             -->
+  <!-- ════════════════════════════════════════════════ -->
+  <article class="exercise">
+    <div class="exercise-header">
+      <span class="exercise-number">2</span>
+      <h2>Monthly Budget Check-In</h2>
+    </div>
+    <div class="exercise-meta">
+      <span class="badge badge--tool">Copilot</span>
+      <span class="badge badge--time">15 min</span>
+    </div>
+    <p class="exercise-desc">A personal finance check-up in 15 minutes. See exactly where your money goes and where you can cut back.</p>
+
+    <p class="prompt-label">&#9998; Prompt — paste into Copilot</p>
+    <div class="prompt-box">I earn approximately $[MONTHLY INCOME] after taxes. Here are my monthly expenses:
+
+[LIST YOUR EXPENSES — e.g., rent $1,500, groceries $400, car payment $350, subscriptions $80, dining out $300, utilities $200]
+
+Organize these into categories, calculate what percentage of my income goes to each category, and tell me how my spending compares to the 50/30/20 rule (50% needs, 30% wants, 20% savings). Be specific about where I could cut back.</div>
+
+    <p class="prompt-label">&#128260; Follow-up — same conversation</p>
+    <div class="prompt-box">Based on my budget, I want to save $[AMOUNT] in [TIMEFRAME — e.g., 6 months, 1 year] for [GOAL — e.g., emergency fund, vacation, down payment]. Create a realistic monthly savings plan. Show me exactly where to cut back and by how much to reach this goal.</div>
+
+    <div class="result-box">
+      <strong>What you'll get:</strong> A categorized spending breakdown with 50/30/20 analysis, plus a personalized savings plan with specific line items to cut — no judgment, just math.
+    </div>
+  </article>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Exercise 3: Resume Refresh                      -->
+  <!-- ════════════════════════════════════════════════ -->
+  <article class="exercise">
+    <div class="exercise-header">
+      <span class="exercise-number">3</span>
+      <h2>Resume Refresh</h2>
+    </div>
+    <div class="exercise-meta">
+      <span class="badge badge--tool">Copilot</span>
+      <span class="badge badge--time">20 min</span>
+    </div>
+    <p class="exercise-desc">Tailor your resume to any job posting in minutes — plus get a cover letter draft that doesn't sound like a robot wrote it.</p>
+
+    <p class="prompt-label">&#9998; Prompt — paste into Copilot</p>
+    <div class="prompt-box">I'm applying for [JOB TITLE] at [COMPANY]. Below is my current resume and the job description. Rewrite my bullet points to better match this role. Use strong action verbs, quantify results where possible, and highlight the skills most relevant to this job description. Keep my experience truthful — just help me present it more effectively.
+
+--- MY RESUME ---
+[PASTE YOUR RESUME]
+
+--- JOB DESCRIPTION ---
+[PASTE THE JOB DESCRIPTION]</div>
+
+    <p class="prompt-label">&#128260; Follow-up — same conversation</p>
+    <div class="prompt-box">Now write a cover letter for this same role. Keep it under 300 words. Open with something specific about why I'm interested in [COMPANY] — not a generic line. Connect my strongest experience to what they're looking for. End with confidence, not desperation.</div>
+
+    <div class="result-box">
+      <strong>What you'll get:</strong> Tailored resume bullets with stronger action verbs and relevant keywords, plus a concise, authentic cover letter — all truthful, just presented at its best.
+    </div>
+  </article>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Exercise 4: Meeting Prep Brief                  -->
+  <!-- ════════════════════════════════════════════════ -->
+  <article class="exercise">
+    <div class="exercise-header">
+      <span class="exercise-number">4</span>
+      <h2>Meeting Prep Brief</h2>
+    </div>
+    <div class="exercise-meta">
+      <span class="badge badge--tool">Copilot</span>
+      <span class="badge badge--time">10 min</span>
+    </div>
+    <p class="exercise-desc">Walk into your next meeting like you did a week of homework. Company intel, smart questions, and talking points — in 10 minutes.</p>
+
+    <p class="prompt-label">&#9998; Prompt — paste into Copilot</p>
+    <div class="prompt-box">I have a meeting with [PERSON'S NAME AND TITLE] at [COMPANY] about [TOPIC]. Give me a one-page briefing that includes: the company's recent news (last 6 months), their main competitors, any industry trends relevant to [TOPIC], and 3 smart questions I could ask to sound well-prepared.</div>
+
+    <p class="prompt-label">&#128260; Follow-up — same conversation</p>
+    <div class="prompt-box">Now give me 5 concise talking points I can bring up during this meeting. Each should connect something about [COMPANY]'s current situation to [MY COMPANY/ROLE/OBJECTIVE]. Format them as bullet points I can glance at on my phone.</div>
+
+    <div class="result-box">
+      <strong>What you'll get:</strong> A one-page company briefing with live-web research, 3 smart questions, and 5 glanceable talking points — so you walk in prepared, not winging it.
+    </div>
+  </article>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Exercise 5: Email Drafting Assistant             -->
+  <!-- ════════════════════════════════════════════════ -->
+  <article class="exercise">
+    <div class="exercise-header">
+      <span class="exercise-number">5</span>
+      <h2>Email Drafting Assistant</h2>
+    </div>
+    <div class="exercise-meta">
+      <span class="badge badge--tool">Copilot</span>
+      <span class="badge badge--time">5 min</span>
+    </div>
+    <p class="exercise-desc">Stop agonizing over the wording of that tricky email. Get a solid draft in under a minute, then tweak to taste.</p>
+
+    <p class="prompt-label">&#9998; Prompt — paste into Copilot</p>
+    <div class="prompt-box">Help me write a professional email about [SITUATION — e.g., declining a meeting, requesting a deadline extension, following up after no response, addressing a disagreement].
+
+The recipient is [RELATIONSHIP — e.g., my manager, a client, a colleague in another department].
+
+My tone should be [TONE — e.g., firm but polite, warm and appreciative, direct but not aggressive].
+
+Key points I need to convey:
+- [POINT 1]
+- [POINT 2]
+- [POINT 3]
+
+Keep it under 150 words.</div>
+
+    <p class="prompt-label">&#128260; Follow-up — same conversation</p>
+    <div class="prompt-box">That's good, but make it a little more [ADJUSTMENT — e.g., casual, formal, empathetic, concise]. Also add [ADDITIONAL DETAIL — e.g., mention the project timeline, include a specific date, reference our last conversation].</div>
+
+    <div class="result-box">
+      <strong>What you'll get:</strong> A polished email draft in under a minute — like having a colleague say "here, try this" instead of staring at a blank compose window.
+    </div>
+  </article>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Exercise 6: Weekly Meal Planner                 -->
+  <!-- ════════════════════════════════════════════════ -->
+  <article class="exercise">
+    <div class="exercise-header">
+      <span class="exercise-number">6</span>
+      <h2>Weekly Meal Planner</h2>
+    </div>
+    <div class="exercise-meta">
+      <span class="badge badge--tool">Copilot</span>
+      <span class="badge badge--time">10 min</span>
+    </div>
+    <p class="exercise-desc">One conversation, five dinners, one grocery list — organized by store section. Sunday meal-prep plan included.</p>
+
+    <p class="prompt-label">&#9998; Prompt — paste into Copilot</p>
+    <div class="prompt-box">Create a weeknight dinner plan for [NUMBER] people, Monday through Friday. Our dietary preferences: [PREFERENCES — e.g., mostly healthy, one vegetarian meal, no seafood, kid-friendly]. I have about [TIME] minutes to cook on weeknights. I want meals that share ingredients so I'm not buying 50 things. Include a consolidated grocery list at the end, organized by store section (produce, dairy, meat, pantry).</div>
+
+    <p class="prompt-label">&#128260; Follow-up — same conversation</p>
+    <div class="prompt-box">Now give me a Sunday meal-prep plan. Show me what I can chop, marinate, or pre-cook on Sunday afternoon in about 1 hour to make the weeknight meals faster. List the steps in order of what to start first.</div>
+
+    <div class="result-box">
+      <strong>What you'll get:</strong> Five weeknight dinners with shared ingredients, a store-section grocery list, and a 1-hour Sunday prep plan — replacing the weekly "what's for dinner?" stress.
+    </div>
+  </article>
+
+  <!-- ════════════════════════════════════════════════ -->
+  <!-- Footer                                          -->
+  <!-- ════════════════════════════════════════════════ -->
+  <footer class="kit-footer">
+    <p>Made with care by <strong>Solace</strong> &mdash; findsolace.io</p>
+    <p class="tip">&#128161; Tip: Replace the [BRACKETED] text with your real details. The more specific you are, the better the results.</p>
+    <button class="print-btn" onclick="window.print()" style="margin-top:1rem;">&#128438; Print / Save as PDF</button>
+  </footer>
+
+</body>
+</html>

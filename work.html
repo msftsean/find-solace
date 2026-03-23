@@ -25,6 +25,28 @@
 <title>Work Life — Solace</title>
 <meta name="description" content="How AI tools can help with your career, inbox management, and performance reviews — real tools, real results, no jargon.">
 
+<!-- Application Insights -->
+<script>
+(function(){
+  if (navigator.doNotTrack === '1' || window.doNotTrack === '1') return;
+  if (localStorage.getItem('solace-analytics-consent') === 'declined') return;
+  if (localStorage.getItem('solace-analytics-consent') !== 'accepted') return;
+  var s = document.createElement('script');
+  s.src = 'https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js';
+  s.setAttribute('data-cfg-sync', '');
+  s.onload = function() {
+    var cfg = {
+      connectionString: 'InstrumentationKey=7e0704ea-60ed-493f-b1fe-6427e5e38114;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=be76f802-40e4-4f0e-be6a-1cd03997585a',
+      enableAutoRouteTracking: true
+    };
+    window.appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({ config: cfg });
+    window.appInsights.loadAppInsights();
+    window.appInsights.trackPageView();
+  };
+  document.head.appendChild(s);
+})();
+</script>
+
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -258,6 +280,27 @@
 
   </main>
 
+  <!-- Footer Email Signup -->
+  <section class="footer-signup" aria-label="Email signup">
+    <div class="container">
+      <div class="footer-signup-text">
+        <h3>Get the AI Starter Kit</h3>
+        <p>6 ready-to-use prompts — yours free, no strings attached.</p>
+      </div>
+      <div>
+        <form class="footer-signup-form" id="footer-signup-form" aria-label="Email signup for AI Starter Kit">
+          <input type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
+          <input type="hidden" name="ts" value="">
+          <input type="email" name="email" placeholder="you@example.com" required aria-label="Email address">
+          <button type="submit">Get it free →</button>
+        </form>
+        <p class="footer-signup-privacy"><a href="./privacy.html">We respect your privacy</a></p>
+        <p class="footer-signup-success" id="footer-signup-success" style="display:none;">✓ You're in! <a href="./assets/ai-starter-kit.html" target="_blank">Download your kit</a></p>
+        <p class="footer-signup-error" id="footer-signup-error" style="display:none;"></p>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer class="site-footer" role="contentinfo">
     <div class="container">
@@ -287,10 +330,20 @@
           <li><a href="./home.html">Home Life</a></li>
           <li><a href="./work.html">Work Life</a></li>
           <li><a href="./labs.html">Examples</a></li>
+          <li><a href="./privacy.html">Privacy</a></li>
         </ul>
       </div>
     </div>
   </footer>
+
+  <!-- Consent Banner -->
+  <div class="consent-banner" id="consent-banner" role="dialog" aria-label="Analytics consent">
+    <div class="container">
+      <p>We use analytics to improve your experience. <a href="./privacy.html">Learn more</a></p>
+      <button class="consent-btn consent-btn--accept" id="consent-accept">Accept</button>
+      <button class="consent-btn consent-btn--decline" id="consent-decline">Decline</button>
+    </div>
+  </div>
 
   <script>
     // Theme toggle with system preference detection
@@ -370,6 +423,93 @@
     });
   </script>
 
+  <!-- Email Signup + Consent Logic -->
+  <script>
+    (function() {
+      var tsForms = document.querySelectorAll('input[name="ts"]');
+      tsForms.forEach(function(input) { input.value = Date.now(); });
+
+      function handleSignup(form, successEl, errorEl, source) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          var email = form.querySelector('input[type="email"]').value;
+          var website = form.querySelector('input[name="website"]').value;
+          var ts = form.querySelector('input[name="ts"]').value;
+          var btn = form.querySelector('button[type="submit"]');
+          btn.disabled = true;
+          btn.textContent = 'Sending...';
+          errorEl.style.display = 'none';
+
+          fetch('/api/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, website: website, ts: ts, source: source })
+          })
+          .then(function(res) { return res.json(); })
+          .then(function(data) {
+            if (data.success) {
+              form.style.display = 'none';
+              successEl.style.display = 'block';
+              if (window.appInsights) {
+                window.appInsights.trackEvent({ name: 'email_subscribed', properties: { source: source } });
+              }
+            } else {
+              errorEl.textContent = data.error || 'Something went wrong.';
+              errorEl.style.display = 'block';
+              btn.disabled = false;
+              btn.textContent = 'Get it free →';
+            }
+          })
+          .catch(function() {
+            errorEl.textContent = 'Network error. Please try again.';
+            errorEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Get it free →';
+          });
+        });
+      }
+
+      var footerForm = document.getElementById('footer-signup-form');
+      var footerSuccess = document.getElementById('footer-signup-success');
+      var footerError = document.getElementById('footer-signup-error');
+      if (footerForm) handleSignup(footerForm, footerSuccess, footerError, 'footer');
+
+      var banner = document.getElementById('consent-banner');
+      var consent = localStorage.getItem('solace-analytics-consent');
+      if (navigator.doNotTrack === '1' || window.doNotTrack === '1') {
+        // DNT enabled
+      } else if (!consent && banner) {
+        setTimeout(function() { banner.classList.add('is-visible'); }, 1500);
+      }
+
+      var acceptBtn = document.getElementById('consent-accept');
+      var declineBtn = document.getElementById('consent-decline');
+      if (acceptBtn) {
+        acceptBtn.addEventListener('click', function() {
+          localStorage.setItem('solace-analytics-consent', 'accepted');
+          banner.classList.remove('is-visible');
+          var s = document.createElement('script');
+          s.src = 'https://js.monitor.azure.com/scripts/b/ai.3.gbl.min.js';
+          s.onload = function() {
+            var cfg = {
+              connectionString: 'InstrumentationKey=7e0704ea-60ed-493f-b1fe-6427e5e38114;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=be76f802-40e4-4f0e-be6a-1cd03997585a',
+              enableAutoRouteTracking: true
+            };
+            window.appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({ config: cfg });
+            window.appInsights.loadAppInsights();
+            window.appInsights.trackPageView();
+          };
+          document.head.appendChild(s);
+        });
+      }
+      if (declineBtn) {
+        declineBtn.addEventListener('click', function() {
+          localStorage.setItem('solace-analytics-consent', 'declined');
+          banner.classList.remove('is-visible');
+        });
+      }
+    })();
+  </script>
 
   <!-- Solace Agent Widget (T018-T038) -->
   <script>

@@ -658,6 +658,270 @@ a.card:hover .card-link svg {
   color: var(--color-text-muted);
 }
 
+/* --- Footer Email Signup --- */
+.footer-signup {
+  border-top: 1px solid var(--color-divider);
+  padding-block: var(--space-8);
+  margin-top: var(--space-16);
+}
+
+.footer-signup .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .footer-signup .container {
+    flex-direction: row;
+    text-align: left;
+    gap: var(--space-8);
+  }
+}
+
+.footer-signup-text {
+  flex: 1;
+}
+
+.footer-signup-text h3 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+.footer-signup-text p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.footer-signup-form {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 400px;
+}
+
+.footer-signup-form input[type="email"] {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-family: 'Satoshi', sans-serif;
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color var(--transition-interactive);
+}
+
+.footer-signup-form input[type="email"]:focus {
+  border-color: var(--color-primary);
+}
+
+.footer-signup-form input[type="email"]::placeholder {
+  color: var(--color-text-faint);
+}
+
+.footer-signup-form button {
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-primary);
+  color: #FFFDF9;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-interactive);
+}
+
+.footer-signup-form button:hover {
+  background: var(--color-primary-hover);
+}
+
+.footer-signup-form button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.footer-signup-success {
+  font-size: var(--text-sm);
+  color: var(--color-secondary);
+  font-weight: 500;
+}
+
+.footer-signup-error {
+  font-size: var(--text-sm);
+  color: #c44;
+}
+
+.footer-signup-privacy {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  margin-top: var(--space-1);
+}
+
+.footer-signup-privacy a {
+  color: var(--color-text-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- Inline CTA (index.html) --- */
+.inline-cta {
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  text-align: center;
+  max-width: 560px;
+  margin: var(--space-12) auto;
+}
+
+.inline-cta h3 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: var(--text-xl);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+}
+
+.inline-cta p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+  line-height: 1.6;
+}
+
+.inline-cta-form {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  margin-bottom: var(--space-3);
+}
+
+.inline-cta-form input[type="email"] {
+  flex: 1;
+  max-width: 260px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-family: 'Satoshi', sans-serif;
+  font-size: var(--text-sm);
+  outline: none;
+  transition: border-color var(--transition-interactive);
+}
+
+.inline-cta-form input[type="email"]:focus {
+  border-color: var(--color-primary);
+}
+
+.inline-cta-form input[type="email"]::placeholder {
+  color: var(--color-text-faint);
+}
+
+.inline-cta-form button {
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-primary);
+  color: #FFFDF9;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: 'Satoshi', sans-serif;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-interactive);
+}
+
+.inline-cta-form button:hover {
+  background: var(--color-primary-hover);
+}
+
+.inline-cta-form button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --- Analytics Consent Banner --- */
+.consent-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-divider);
+  padding: var(--space-4) var(--space-6);
+  z-index: 9999;
+  transform: translateY(100%);
+  transition: transform 0.3s var(--ease-out);
+}
+
+.consent-banner.is-visible {
+  transform: translateY(0);
+}
+
+.consent-banner .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  text-align: center;
+}
+
+.consent-banner p {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.consent-banner a {
+  color: var(--color-primary-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.consent-btn {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: 'Satoshi', sans-serif;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-interactive);
+}
+
+.consent-btn--accept {
+  background: var(--color-primary);
+  color: #FFFDF9;
+  border-color: var(--color-primary);
+}
+
+.consent-btn--accept:hover {
+  background: var(--color-primary-hover);
+}
+
+.consent-btn--decline {
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.consent-btn--decline:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-muted);
+}
+
+.consent-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 /* --- Scroll Reveal (JS IntersectionObserver) --- */
 .fade-in {
   opacity: 0;
