@@ -6,6 +6,9 @@
 # Squad: SubSquad activation file (local to this machine)
 .squad-workstream
 
+# Dependencies
+node_modules/
+
 # Environment variables and secrets
 .env
 .env.*
